@@ -136,6 +136,7 @@
   <div>
     <h1>Venda de Cartelas — Bingo Paróquia</h1>
     <p>Paróquia Sagrado Coração de Jesus · Marília-SP</p>
+    <p style="font-size:11px;color:rgba(255,255,255,.5);margin-top:3px" id="verInfo">cadastro.html v1.1 · API: verificando…</p>
   </div>
 </div>
 
@@ -175,6 +176,19 @@
           💾 Salvar nova cartela na planilha
         </button>
         <div class="criar-resultado" id="criarResultado"></div>
+
+        <div style="border-top:1px dashed var(--cinza-borda); margin-top:16px; padding-top:14px">
+          <div style="font-size:12px; font-weight:600; color:var(--verde-escuro); text-transform:uppercase; letter-spacing:.05em; margin-bottom:10px">📦 Gerar cartelas em lote</div>
+          <div class="form-row" style="grid-template-columns: 1fr auto; align-items:end">
+            <div class="form-group">
+              <label>Quantidade de cartelas</label>
+              <input type="number" id="loteQtd" min="1" max="20000" value="100">
+            </div>
+            <button class="btn-buscar" id="btnLote" onclick="gerarLote()" style="height:38px">Gerar lote</button>
+          </div>
+          <div style="font-size:11px; color:var(--texto-sec); margin-top:6px">O Apps Script gera e salva todas de uma vez (uma única escrita na planilha).</div>
+          <div class="criar-resultado" id="loteResultado"></div>
+        </div>
       </div>
     </div>
 
@@ -283,9 +297,25 @@
 
 <script>
 var API = 'https://script.google.com/macros/s/AKfycbzvQzdyNfNkH1UlafCdvw2hFWnBFcS0RsIT0OX1KOZbFp2QA8DWKhaRR5o_6_j1mdiDpQ/exec';
+var FRONT_VERSION = '1.1'; // versão deste arquivo cadastro.html — atualizar a cada mudança
 
 var cartelaAtual  = null;
 var historicoSessao = [];
+
+/* ── VERSÃO (front-end + API) ── */
+function atualizarVersaoExibida(versaoApi) {
+  var el = document.getElementById('verInfo');
+  if (!el) return;
+  el.textContent = 'cadastro.html v' + FRONT_VERSION + ' · API: ' + (versaoApi || 'sem resposta');
+}
+function checarVersaoApi() {
+  /* Qualquer ação não reconhecida cai no "default" do backend, que
+     responde rapidinho com { versao: ... } sem tocar na planilha —
+     ideal só pra checar a versão sem gastar tempo/quota à toa. */
+  jsonp(API + '?acao=_ping', function(err, data) {
+    atualizarVersaoExibida(err || !data ? null : data.versao);
+  });
+}
 
 /* ── JSONP ── */
 function jsonp(url, cb) {
@@ -667,8 +697,43 @@ function salvarCartelaNova() {
   );
 }
 
+/* ══════════════════════════════════════════════════════
+   GERAR CARTELAS EM LOTE
+   Pede pro Apps Script gerar e salvar N cartelas de uma
+   vez (uma única escrita na planilha) — evita fazer N
+   requisições separadas pela tela.
+══════════════════════════════════════════════════════ */
+function gerarLote() {
+  var qtd = parseInt(document.getElementById('loteQtd').value, 10);
+  if (!qtd || qtd < 1) { toast('Informe uma quantidade válida', true); return; }
+  if (qtd > 20000) { toast('Máximo de 20.000 por lote', true); return; }
+
+  if (!confirm('Gerar e salvar ' + qtd + ' cartelas novas na planilha agora?')) return;
+
+  var res = document.getElementById('loteResultado');
+  res.className = 'criar-resultado show';
+  res.textContent = '⏳ Gerando ' + qtd + ' cartelas... isso pode levar alguns segundos.';
+
+  var btn = document.getElementById('btnLote');
+  btn.disabled = true;
+
+  jsonp(API + '?acao=cadastrarCartelasEmLote&quantidade=' + qtd, function(err, data) {
+    btn.disabled = false;
+    if (err || !data || !data.sucesso) {
+      res.textContent = '❌ Erro: ' + ((data && data.dados && data.dados.mensagem) || (err && err.message) || 'desconhecido');
+      toast('Erro ao gerar lote', true);
+      return;
+    }
+    var d = data.dados;
+    res.textContent = '✅ ' + d.total + ' cartelas criadas (de #' + d.primeiroId + ' a #' + d.ultimoId + ').';
+    toast('✅ ' + d.total + ' cartelas geradas com sucesso!');
+    carregarEstatisticas();
+  });
+}
+
 /* ── INIT ── */
 carregarEstatisticas();
+checarVersaoApi();
 document.getElementById('inputId').focus();
 </script>
 </body>
