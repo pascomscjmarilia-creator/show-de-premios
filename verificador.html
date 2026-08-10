@@ -32,6 +32,8 @@
   .status-canal { display: flex; align-items: center; gap: 6px; font-size: 13px; background: rgba(255,255,255,.12); padding: 6px 12px; border-radius: 20px; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: #aaa; transition: background .3s; }
   .dot.ativo { background: var(--verde-claro); }
+  .header-voltar { width: 36px; height: 36px; flex-shrink: 0; background: rgba(255,255,255,.12); border: none; border-radius: 8px; color: #fff; font-size: 18px; display: flex; align-items: center; justify-content: center; text-decoration: none; transition: background .15s; }
+  .header-voltar:hover { background: rgba(255,255,255,.22); }
 
   /* ── Pedras ── */
   .pedras-bar { background: var(--verde-escuro); padding: 10px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -86,7 +88,10 @@
 
   /* ── Grade ── */
   .grade-wrapper { padding: 16px 20px; }
-  .grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+  .grade { display: grid; grid-template-columns: repeat(10, 1fr); gap: 10px; }
+  @media (max-width: 1600px) { .grade { grid-template-columns: repeat(6, 1fr); } }
+  @media (max-width: 1100px) { .grade { grid-template-columns: repeat(4, 1fr); } }
+  @media (max-width: 720px)  { .grade { grid-template-columns: repeat(2, 1fr); } }
 
   .cartela { background: white; border: 2px solid var(--cinza-borda); border-radius: 10px; overflow: hidden; transition: border-color .2s, box-shadow .2s; }
   .cartela.quina { border-color: var(--amarelo); box-shadow: 0 0 0 3px rgba(255,214,0,.35); }
@@ -135,6 +140,7 @@
   <div>
     <h1>🎱 Verificador de Cartelas</h1>
     <div class="sub">Bingo — Quermesse Paróquia Sagrado Coração de Jesus · Marília-SP</div>
+    <div class="sub" id="verInfo" style="opacity:.5">verificador.html v1.1 · API: verificando…</div>
   </div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <button class="btn btn-verde" onclick="carregarCartelas()">⬇️ Carregar cartelas</button>
@@ -143,6 +149,7 @@
       <div class="dot" id="dot-canal"></div>
       <span id="txt-canal">Canal desconectado</span>
     </div>
+    <a class="header-voltar" href="index.html" title="Voltar para a tela principal">🏠</a>
   </div>
 </header>
 
@@ -221,6 +228,19 @@
 ══════════════════════════════════════════════════════ */
 var API    = 'https://script.google.com/macros/s/AKfycbzvQzdyNfNkH1UlafCdvw2hFWnBFcS0RsIT0OX1KOZbFp2QA8DWKhaRR5o_6_j1mdiDpQ/exec';
 var LIMITE = 200;   // cartelas por página — ajuste conforme necessário
+var FRONT_VERSION = '1.1'; // versão deste arquivo verificador.html — atualizar a cada mudança
+
+/* ── VERSÃO (front-end + API) ── */
+function atualizarVersaoExibida(versaoApi) {
+  var el = document.getElementById('verInfo');
+  if (!el) return;
+  el.textContent = 'verificador.html v' + FRONT_VERSION + ' · API: ' + (versaoApi || 'sem resposta');
+}
+function checarVersaoApi() {
+  jsonp(API + '?acao=_ping', function(err, data) {
+    atualizarVersaoExibida(err || !data ? null : data.versao);
+  });
+}
 
 /* ══════════════════════════════════════════════════════
    ESTADO
@@ -710,6 +730,7 @@ setTimeout(function() {
 iniciarCanal();
 atualizarContadores();
 renderizarPedras(null);
+checarVersaoApi();
 </script>
 </body>
 </html>
