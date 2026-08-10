@@ -109,6 +109,24 @@
   .toast { position: fixed; bottom: 24px; right: 24px; background: var(--verde-escuro); color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 500; z-index: 999; opacity: 0; transform: translateY(10px); transition: all .25s; max-width: 320px; box-shadow: 0 4px 16px rgba(0,0,0,.2); }
   .toast.show { opacity: 1; transform: translateY(0); }
   .toast.erro { background: var(--danger); }
+
+  /* ── Criar cartela ── */
+  .criar-toggle { width: 100%; padding: 12px; background: var(--verde-fundo); color: var(--verde-escuro); border: 1px dashed var(--verde-medio); border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .criar-toggle:hover { background: #e0eecb; }
+  .criar-body { display: none; margin-top: 16px; }
+  .criar-body.show { display: block; }
+  .grade-gerador { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; max-width: 320px; margin: 0 auto 12px; }
+  .grade-gerador .col-letra { text-align: center; font-weight: 700; color: var(--verde-medio); font-size: 14px; padding-bottom: 2px; }
+  .grade-gerador input { width: 100%; text-align: center; padding: 8px 2px; border: 1px solid var(--cinza-borda); border-radius: 6px; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .grade-gerador input:focus { outline: none; border-color: var(--verde-medio); box-shadow: 0 0 0 2px rgba(26,107,48,.1); }
+  .grade-gerador input.invalida { border-color: var(--danger); background: var(--danger-fundo); color: var(--danger); }
+  .grade-gerador .celula-free { display: flex; align-items: center; justify-content: center; background: var(--verde-fundo); border: 1px dashed var(--verde-medio); border-radius: 6px; font-size: 9px; font-weight: 700; color: var(--verde-medio); text-transform: uppercase; }
+  .criar-validacao { text-align: center; font-size: 12px; padding: 8px; border-radius: var(--radius-sm); margin-bottom: 12px; }
+  .criar-validacao.ok   { background: var(--success-fundo); color: var(--success); }
+  .criar-validacao.erro { background: var(--danger-fundo); color: var(--danger); }
+  .criar-acoes { display: flex; gap: 8px; }
+  .criar-resultado { margin-top: 12px; text-align: center; font-size: 13px; color: var(--verde-escuro); font-weight: 600; display: none; }
+  .criar-resultado.show { display: block; }
 </style>
 </head>
 <body>
@@ -137,6 +155,26 @@
       <div class="cartela-status" id="statusCartela">
         <span class="status-icon" id="statusIcon"></span>
         <span id="statusTexto"></span>
+      </div>
+    </div>
+
+    <!-- CRIAR NOVA CARTELA -->
+    <div class="card">
+      <button class="criar-toggle" onclick="toggleCriarCartela()" id="btnToggleCriar">🎱 + Criar nova cartela</button>
+
+      <div class="criar-body" id="criarBody">
+        <div class="grade-gerador" id="gradeGerador"></div>
+
+        <div class="criar-validacao" id="criarValidacao" style="display:none"></div>
+
+        <div class="criar-acoes">
+          <button class="btn-secondary" style="margin-top:0" onclick="gerarGradeAleatoria()">🎲 Gerar aleatória</button>
+          <button class="btn-secondary" style="margin-top:0" onclick="limparGradeNova()">✕ Limpar</button>
+        </div>
+        <button class="btn-primary" id="btnSalvarCartelaNova" style="margin-top:8px" onclick="salvarCartelaNova()">
+          💾 Salvar nova cartela na planilha
+        </button>
+        <div class="criar-resultado" id="criarResultado"></div>
       </div>
     </div>
 
@@ -462,6 +500,172 @@ function toast(msg, erro) {
 document.getElementById('inputId').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') buscarCartela();
 });
+
+/* ══════════════════════════════════════════════════════
+   CRIAR NOVA CARTELA
+   Colunas do bingo: B(1-15) I(16-30) N(31-45) G(46-60) O(61-75)
+   Centro (linha 2, coluna 2 — 0-indexado) é sempre FREE.
+══════════════════════════════════════════════════════ */
+var COLUNAS = [
+  { letra: 'B', min: 1,  max: 15 },
+  { letra: 'I', min: 16, max: 30 },
+  { letra: 'N', min: 31, max: 45 },
+  { letra: 'G', min: 46, max: 60 },
+  { letra: 'O', min: 61, max: 75 }
+];
+var gradeAtual = criarGradeVazia();
+var criarAberto = false;
+
+function criarGradeVazia() {
+  var g = [];
+  for (var r = 0; r < 5; r++) g.push([null, null, null, null, null]);
+  return g;
+}
+
+function toggleCriarCartela() {
+  criarAberto = !criarAberto;
+  document.getElementById('criarBody').classList.toggle('show', criarAberto);
+  document.getElementById('btnToggleCriar').textContent = criarAberto ? '🎱 − Fechar criação de cartela' : '🎱 + Criar nova cartela';
+  if (criarAberto && !document.getElementById('gradeGerador').children.length) {
+    renderGradeGerador();
+  }
+}
+
+function renderGradeGerador() {
+  var el = document.getElementById('gradeGerador');
+  var html = COLUNAS.map(function(c) { return '<div class="col-letra">' + c.letra + '</div>'; }).join('');
+  for (var r = 0; r < 5; r++) {
+    for (var c = 0; c < 5; c++) {
+      if (r === 2 && c === 2) {
+        html += '<div class="celula-free">FREE</div>';
+        continue;
+      }
+      var val = gradeAtual[r][c];
+      html += '<input type="number" data-r="' + r + '" data-c="' + c + '" ' +
+        'min="' + COLUNAS[c].min + '" max="' + COLUNAS[c].max + '" ' +
+        'value="' + (val === null || val === undefined ? '' : val) + '" ' +
+        'oninput="onCelulaInput(this)">';
+    }
+  }
+  el.innerHTML = html;
+}
+
+function onCelulaInput(input) {
+  var r = Number(input.dataset.r), c = Number(input.dataset.c);
+  var v = input.value.trim();
+  gradeAtual[r][c] = v === '' ? null : Number(v);
+  validarGradeNova();
+}
+
+function sorteiaUnicos(min, max, qtd) {
+  var pool = [];
+  for (var i = min; i <= max; i++) pool.push(i);
+  for (var i = pool.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = pool[i]; pool[i] = pool[j]; pool[j] = t;
+  }
+  return pool.slice(0, qtd);
+}
+
+function gerarGradeAleatoria() {
+  var g = criarGradeVazia();
+  for (var c = 0; c < 5; c++) {
+    var col = COLUNAS[c];
+    var nums = sorteiaUnicos(col.min, col.max, 5);
+    var idx = 0;
+    for (var r = 0; r < 5; r++) {
+      if (r === 2 && c === 2) { g[r][c] = null; continue; }
+      g[r][c] = nums[idx++];
+    }
+  }
+  gradeAtual = g;
+  renderGradeGerador();
+  validarGradeNova();
+}
+
+function limparGradeNova() {
+  gradeAtual = criarGradeVazia();
+  renderGradeGerador();
+  document.getElementById('criarValidacao').style.display = 'none';
+  document.getElementById('criarResultado').classList.remove('show');
+}
+
+/* Retorna { ok:boolean, mensagem:string, numeros:[...] } */
+function validarGradeNova() {
+  var inputs = document.querySelectorAll('#gradeGerador input');
+  inputs.forEach(function(inp) { inp.classList.remove('invalida'); });
+
+  var numeros = [];
+  var faltando = 0;
+  var problema = '';
+
+  for (var c = 0; c < 5; c++) {
+    var col = COLUNAS[c];
+    var vistos = {};
+    for (var r = 0; r < 5; r++) {
+      if (r === 2 && c === 2) continue; // FREE
+      var val = gradeAtual[r][c];
+      if (val === null || val === undefined || isNaN(val)) { faltando++; continue; }
+      var inp = document.querySelector('#gradeGerador input[data-r="' + r + '"][data-c="' + c + '"]');
+      if (val < col.min || val > col.max) {
+        if (inp) inp.classList.add('invalida');
+        problema = 'O número ' + val + ' está fora da faixa da coluna ' + col.letra + ' (' + col.min + '–' + col.max + ').';
+        continue;
+      }
+      if (vistos[val]) {
+        if (inp) inp.classList.add('invalida');
+        problema = 'Número ' + val + ' repetido na coluna ' + col.letra + '.';
+        continue;
+      }
+      vistos[val] = true;
+      numeros.push(val);
+    }
+  }
+
+  var el = document.getElementById('criarValidacao');
+  el.style.display = 'block';
+
+  if (problema) {
+    el.className = 'criar-validacao erro';
+    el.textContent = '❌ ' + problema;
+    return { ok: false };
+  }
+  if (faltando > 0) {
+    el.className = 'criar-validacao erro';
+    el.textContent = 'Faltam ' + faltando + ' número(s) para completar a cartela.';
+    return { ok: false };
+  }
+
+  el.className = 'criar-validacao ok';
+  el.textContent = '✅ Cartela completa e válida (24 números).';
+  return { ok: true, numeros: numeros.sort(function(a, b) { return a - b; }) };
+}
+
+function salvarCartelaNova() {
+  var v = validarGradeNova();
+  if (!v.ok) { toast('Corrija a cartela antes de salvar', true); return; }
+
+  document.getElementById('btnSalvarCartelaNova').disabled = true;
+
+  jsonp(API + '?acao=cadastrarCartela'
+      + '&numeros=' + encodeURIComponent(JSON.stringify(v.numeros))
+      + '&grade='   + encodeURIComponent(JSON.stringify(gradeAtual)),
+    function(err, data) {
+      document.getElementById('btnSalvarCartelaNova').disabled = false;
+      if (err || !data || !data.sucesso) {
+        toast('Erro ao criar cartela: ' + ((data && data.dados && data.dados.mensagem) || (err && err.message) || 'desconhecido'), true);
+        return;
+      }
+      var novoId = data.dados.id;
+      var res = document.getElementById('criarResultado');
+      res.className = 'criar-resultado show';
+      res.textContent = '✅ Cartela #' + novoId + ' criada e salva na planilha!';
+      toast('✅ Cartela #' + novoId + ' criada com sucesso!');
+      limparGradeNova();
+      carregarEstatisticas();
+    }
+  );
+}
 
 /* ── INIT ── */
 carregarEstatisticas();
