@@ -532,8 +532,11 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
             <button class="btn btn-primary btn-sm" onclick="vidCarregar()">
               <i class="ti ti-refresh"></i> Atualizar lista
             </button>
-            <a href="video.html" target="_blank" class="btn btn-blue btn-sm">
-              <i class="ti ti-external-link"></i> Abrir tela de vídeo
+            <a href="video.html" target="_blank" class="btn btn-blue btn-sm" title="Use no computador do telão. Se o telão já foi trocado pelo botão Vídeo da barra superior, não precisa abrir.">
+              <i class="ti ti-external-link"></i> Abrir tela de vídeo (telão)
+            </a>
+            <a href="video.html?mudo=1" target="_blank" class="btn btn-ghost btn-sm" title="Para o operador acompanhar a imagem sem som. Evita o áudio duplicado com o telão.">
+              <i class="ti ti-volume-off"></i> Prévia sem som
             </a>
             <button class="btn btn-ghost btn-sm" onclick="vidParar()">
               <i class="ti ti-player-stop"></i> Parar vídeo
