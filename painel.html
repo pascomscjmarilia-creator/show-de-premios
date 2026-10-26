@@ -978,7 +978,9 @@ function initGame(){
   updateStats();
 
   // Carregar config salva
-  const sc=ls(LS_SCRIPT); const scAntigo=/AKfycbwbd7|AKfycbyxYWS|AKfycbzvQzd/.test(sc||''); if(sc && !scAntigo){ scriptUrl=sc; }
+  /* script único da Pascom: qualquer endereço guardado que não seja o atual (de testes ou da versão antiga) é descartado */
+  const sc=ls(LS_SCRIPT); if(sc && sc!==SCRIPT_PATROC) ls(LS_SCRIPT,SCRIPT_PATROC);
+  scriptUrl=SCRIPT_PATROC;
   document.getElementById('scriptUrl').value=scriptUrl;
   const sh=ls(LS_SHEET); if(sh){ try{ const o=JSON.parse(sh); document.getElementById('sheetUrl').value=o.id||''; document.getElementById('sheetTab').value=o.tab||'Lista_Ptrocinio'; }catch(e){} }
 
