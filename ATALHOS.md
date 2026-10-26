@@ -111,6 +111,17 @@ Não são do sistema, mas servem no dia a dia.
 | Equipe de cadastro | `cadastro.html` | Registra as cartelas vendidas |
 
 ---
+---
+
+## Mais de uma tela de vídeo (sem som duplicado)
+
+Todas as telas de vídeo abertas tocam o mesmo vídeo ao mesmo tempo. Para o áudio não sair de dois lugares, deixe o som só na tela principal e abra as outras assim:
+
+```
+.../show-de-premios/video.html?mudo=1
+```
+
+A tela com `?mudo=1` toca a imagem, mas sem som. O computador do operador não precisa manter uma tela de vídeo aberta.
 
 ## 7. Se algo der errado
 

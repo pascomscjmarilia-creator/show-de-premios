@@ -106,6 +106,8 @@
 <script>
 var CANAL_NOME = 'bingo-canal';
 var tituloTimer = null;
+/* Tela secundária sem som: abra video.html?mudo=1 (evita áudio duplicado quando há mais de uma tela de vídeo). */
+var MUDO = /[?&]mudo=(1|sim|true)/i.test(location.search);
 
 /* ── BroadcastChannel ── */
   function processarMensagemVideo(d) {
@@ -189,7 +191,7 @@ function tocarVideo(videoId, titulo) {
   pararVideoLocal();
 
   var src = 'https://www.youtube.com/embed/' + videoId
-    + '?autoplay=1&controls=1&rel=0&modestbranding=1&enablejsapi=0';
+    + '?autoplay=1&controls=1&rel=0&modestbranding=1&enablejsapi=0' + (MUDO ? '&mute=1' : '');
 
   document.getElementById('yt-player').src = src;
   document.getElementById('player-wrap').classList.add('show');
@@ -207,6 +209,7 @@ function tocarVideoLocal(url, titulo) {
   document.getElementById('player-wrap').classList.remove('show');
 
   var player = document.getElementById('local-player');
+  player.muted = MUDO;
   player.src = url;
   player.play().catch(function(){});
 
