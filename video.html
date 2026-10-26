@@ -109,13 +109,32 @@ var tituloTimer = null;
 /* Tela secundária sem som: abra video.html?mudo=1 (evita áudio duplicado quando há mais de uma tela de vídeo). */
 var MUDO = /[?&]mudo=(1|sim|true)/i.test(location.search);
 
+/* Áudio duplicado: se já existe outra tela de vídeo COM som aberta neste
+   navegador, esta aba (a mais nova) se silencia sozinha. Só a primeira toca. */
+try {
+  var _telaId = Math.random().toString(36).slice(2);
+  var _telaCanal = new BroadcastChannel('video-tela');
+  _telaCanal.onmessage = function(e) {
+    var m = e.data || {};
+    if (m.id === _telaId) return;
+    if (m.t === 'ping' && !MUDO) _telaCanal.postMessage({ t: 'pong', id: _telaId });
+    if (m.t === 'pong' && !MUDO) {
+      MUDO = true;
+      var lp = document.getElementById('local-player'); if (lp) lp.muted = true;
+      var yt = document.getElementById('yt-player');
+      if (yt && yt.src && yt.src.indexOf('mute=1') < 0) yt.src += '&mute=1';
+    }
+  };
+  _telaCanal.postMessage({ t: 'ping', id: _telaId });
+} catch(err) {}
+
 /* ── BroadcastChannel ── */
   function processarMensagemVideo(d) {
     if (!d) return;
     if (d.tipo === 'trocar_tela') {
       var alvo = d.payload && d.payload.arquivo;
       var atual = location.pathname.split('/').pop() || 'index.html';
-      if (alvo && alvo !== atual) location.href = alvo;
+      if (alvo && alvo !== atual) location.href = alvo + (MUDO && alvo.indexOf('?') < 0 ? '?mudo=1' : '');
       return;
     }
 

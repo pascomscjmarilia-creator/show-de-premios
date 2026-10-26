@@ -662,7 +662,7 @@ function ytAdicionar(videoId, titulo) {
 
   fb('fbYtBusca', 'ok', 'Salvando "' + titulo + '" na lista…');
 
-  var url = scriptUrl + '?acao=adicionarVideo&titulo=' + encodeURIComponent(titulo) + '&videoId=' + encodeURIComponent(videoId);
+  var url = (VIDEO_SCRIPT || scriptUrl) + '?acao=adicionarVideo&titulo=' + encodeURIComponent(titulo) + '&videoId=' + encodeURIComponent(videoId);
 
   _scJsonp(url, function(err, data) {
     if (err || !data || !data.sucesso) {
@@ -688,7 +688,7 @@ function vidCarregar() {
   document.getElementById('vidStatus').textContent = 'Carregando…';
   document.getElementById('vidLista').innerHTML =
     '<div style="color:#555;font-size:13px;padding:16px;text-align:center">Carregando…</div>';
-  _scJsonp(scriptUrl + '?acao=listarVideos', function(err, data) {
+  _scJsonp((VIDEO_SCRIPT || scriptUrl) + '?acao=listarVideos', function(err, data) {
     if (err || !data || !data.sucesso) {
       document.getElementById('vidStatus').textContent = 'Erro ao carregar.';
       fb('fbVideos','err','Erro ao carregar vídeos da planilha.');
@@ -857,6 +857,8 @@ const LS_SCRIPT    = 'bingo_script_url';
 const LS_SHEET     = 'bingo_sheet_cfg';
 const LS_SPONSORS  = 'bingo_sponsors';
 const SCRIPT_PATROC = 'https://script.google.com/macros/s/AKfycbwEodHdDBfhSgDTn94PJz4no2iJ30T6NpqCge7MlFOtS3BaNmJwO2g0K_ojCnh3Duzj/exec';
+/* Script só dos vídeos (apps-script/videos.gs, planilha nova). Vazio = usa o script único acima. */
+const VIDEO_SCRIPT = 'https://script.google.com/macros/s/AKfycbxi282C_QHoo5Xm7bqinACTWwzNh9x32aWikssVJ7REoIH1lnOSucgPHslkhHvf8PSP/exec';
 const COLS = [
   { l:'B', s:1,  e:15, hex:'#b91c1c', hdr:'#f87171' },
   { l:'I', s:16, e:30, hex:'#1d4ed8', hdr:'#60a5fa' },
