@@ -160,8 +160,12 @@ try {
     if (!user || _fbJaConfigurado) return;
     _fbJaConfigurado = true;
     var _fbUltimoTsVideo = null;
+    var _fbPrimeira = true;
     firebase.database().ref('bingo/ultimaMensagem').on('value', function(snap) {
       var d = snap.val();
+      /* A primeira leitura é só o estado guardado (a última mensagem, que pode
+         ser um play_video antigo). Não é um comando novo: só memoriza. */
+      if (_fbPrimeira) { _fbPrimeira = false; _fbUltimoTsVideo = d && d.ts; return; }
       if (!d || d.ts === _fbUltimoTsVideo) return;
       _fbUltimoTsVideo = d.ts;
       processarMensagemVideo(d);
@@ -172,8 +176,15 @@ try {
 }
 
 /* ── Tocar vídeo do YouTube (já existente) ── */
+var _ytUltimo = { id: '', em: 0 };
 function tocarVideo(videoId, titulo) {
   if (!videoId) return;
+
+  /* O mesmo comando chega pelo canal do navegador e pelo Firebase. Se o mesmo
+     vídeo acabou de iniciar, ignora a cópia — senão o player reinicia. */
+  var agora = Date.now();
+  if (_ytUltimo.id === videoId && agora - _ytUltimo.em < 6000) return;
+  _ytUltimo = { id: videoId, em: agora };
 
   pararVideoLocal();
 
@@ -224,6 +235,7 @@ function mostrarTitulo(titulo) {
 
 /* ── Parar qualquer vídeo ── */
 function pararVideo() {
+  _ytUltimo = { id: '', em: 0 };
   document.getElementById('yt-player').src = '';
   document.getElementById('player-wrap').classList.remove('show');
   pararVideoLocal();
