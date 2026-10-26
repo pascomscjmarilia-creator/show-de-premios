@@ -111,7 +111,6 @@ Não são do sistema, mas servem no dia a dia.
 | Equipe de cadastro | `cadastro.html` | Registra as cartelas vendidas |
 
 ---
----
 
 ## Mais de uma tela de vídeo (sem som duplicado)
 
