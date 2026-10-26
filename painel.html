@@ -853,7 +853,7 @@ const DEFAULT_AUTH_URL = 'https://script.google.com/macros/s/AKfycbz2mFKaGfgZtBu
 const LS_SCRIPT    = 'bingo_script_url';
 const LS_SHEET     = 'bingo_sheet_cfg';
 const LS_SPONSORS  = 'bingo_sponsors';
-const SCRIPT_PATROC = 'https://script.google.com/macros/s/AKfycbyxYWSmr0zHOczqaUg7yoemsXrCDN9mW6WNQJi61IqOSBpBjm9QnB4k6mjwetCj5FYK/exec';
+const SCRIPT_PATROC = 'https://script.google.com/macros/s/AKfycbwEodHdDBfhSgDTn94PJz4no2iJ30T6NpqCge7MlFOtS3BaNmJwO2g0K_ojCnh3Duzj/exec';
 const COLS = [
   { l:'B', s:1,  e:15, hex:'#b91c1c', hdr:'#f87171' },
   { l:'I', s:16, e:30, hex:'#1d4ed8', hdr:'#60a5fa' },
@@ -870,7 +870,7 @@ let hist     = [];
 let fase     = 1;
 let sponsors = [];
 let lastCartela = null;
-let scriptUrl   = '';
+let scriptUrl   = SCRIPT_PATROC; /* script único da Pascom: cartelas, vídeos, patrocinadores */
 
 /* ══════════════════════════════════════════════════════════
    UTILS
@@ -978,7 +978,8 @@ function initGame(){
   updateStats();
 
   // Carregar config salva
-  const sc=ls(LS_SCRIPT); if(sc){ scriptUrl=sc; document.getElementById('scriptUrl').value=sc; }
+  const sc=ls(LS_SCRIPT); const scAntigo=/AKfycbwbd7|AKfycbyxYWS|AKfycbzvQzd/.test(sc||''); if(sc && !scAntigo){ scriptUrl=sc; }
+  document.getElementById('scriptUrl').value=scriptUrl;
   const sh=ls(LS_SHEET); if(sh){ try{ const o=JSON.parse(sh); document.getElementById('sheetUrl').value=o.id||''; document.getElementById('sheetTab').value=o.tab||'Lista_Ptrocinio'; }catch(e){} }
 
   // Carregar patrocinadores salvos
