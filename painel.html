@@ -152,6 +152,21 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:#111}
 ::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
+.btn-ajuda{margin-left:auto;width:30px;height:30px;border-radius:50%;border:2px solid #fbbf24;background:#1a1608;color:#fbbf24;font-size:17px;font-weight:900;cursor:pointer;line-height:1;display:inline-flex;align-items:center;justify-content:center;align-self:center;flex:none}
+.btn-ajuda:hover{background:#fbbf24;color:#111}
+.ajuda-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
+.ajuda-box{background:#161616;border:1px solid #3a3a3a;border-radius:14px;width:min(640px,100%);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+.ajuda-topo{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #2a2a2a;font-weight:800;color:#fbbf24;font-size:16px}
+.ajuda-topo button{background:none;border:none;color:#aaa;font-size:20px;cursor:pointer}
+.ajuda-topo button:hover{color:#fff}
+.ajuda-corpo{overflow-y:auto;padding:6px 16px 16px;color:#d4d4d4;font-size:13px}
+.ajuda-corpo h3{margin:16px 0 6px;font-size:13px;color:#e9d8a6;text-transform:uppercase;letter-spacing:.06em}
+.ajuda-corpo p{margin:4px 0 6px;color:#999}
+.ajuda-tbl{width:100%;border-collapse:collapse}
+.ajuda-tbl td{padding:6px 8px;border-bottom:1px solid #232323;vertical-align:top}
+.ajuda-tbl td:first-child{width:42%;white-space:nowrap}
+.ajuda-corpo kbd{background:#2a2a2a;border:1px solid #444;border-bottom-width:2px;border-radius:5px;padding:1px 6px;font-family:inherit;font-size:12px;font-weight:700;color:#fbbf24}
+.ajuda-rodape{margin-top:14px!important;font-size:12px}
 </style>
 </head>
 <body>
@@ -216,6 +231,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
       <button class="btn btn-ghost btn-sm" onclick="trocarTela('entrevista.html')" title="Todas as telas conectadas passam a mostrar Entrevista">
         <i class="ti ti-video"></i> Entrevista
       </button>
+      <button class="btn-ajuda" onclick="abrirAjuda()" title="Atalhos e comandos (ou aperte a tecla ?)" aria-label="Ajuda: atalhos e comandos">?</button>
     </div>
   </div>
 
@@ -1477,6 +1493,67 @@ async function testarPlanilha(){
     else{ ls(LS_SESSION,''); showLoginFeedback('warn','Sessão expirada. Faça login novamente.'); }
   }catch(e){ ls(LS_SESSION,''); }
 })();
+
+/* ══════════════════════════════════════════════════════════
+   AJUDA — atalhos e comandos (botão "?" na barra superior)
+══════════════════════════════════════════════════════════ */
+function abrirAjuda(){
+  if(document.getElementById('ajudaOverlay')) return;
+  const tbl=(linhas)=>'<table class="ajuda-tbl">'+linhas.map(l=>'<tr><td>'+l[0]+'</td><td>'+l[1]+'</td></tr>').join('')+'</table>';
+  const k=(t)=>'<kbd>'+t+'</kbd>';
+  const html=
+    '<h3>Tela limpa (sem cabeçalho)</h3>'+
+    '<p>Nas telas de telão — datashow, patrocinadores, vídeo e entrevista:</p>'+
+    tbl([[k('F'),'Liga a tela cheia (clique antes na página)'],[k('F11'),'Tela cheia do navegador, em qualquer tela'],[k('Esc'),'Sai da tela cheia']])+
+    '<h3>Teclas de cada tela</h3>'+
+    tbl([
+      ['<b>Datashow</b> '+k('F'),'Tela cheia'],
+      ['<b>Datashow</b> '+k('Esc'),'Esconde a cartela aberta na tela'],
+      ['<b>Patrocinadores</b> '+k('→')+' '+k('←'),'Próximo / anterior patrocinador'],
+      ['<b>Patrocinadores</b> '+k('↑'),'Troca o fundo'],
+      ['<b>Vídeo</b> '+k('Esc'),'Para o vídeo e volta à espera'],
+      ['<b>Entrevista</b> '+k('Esc'),'Encerra a entrevista (libera câmera e microfone)']
+    ])+
+    '<h3>Neste painel</h3>'+
+    tbl([
+      [k('Enter'),'No campo do globo físico: confirma o número. No login: entra'],
+      ['<b>SORTEAR</b>','Sorteia um número (modo Automático)'],
+      ['<b>Globo Físico</b>','Digite o número retirado do globo e aperte '+k('Enter')],
+      ['<b>Desfazer</b>','Tira o último número, em todas as telas'],
+      ['<b>Resetar</b>','Zera o jogo (pede confirmação)'],
+      ['<b>Trocar tela</b>','Muda o que todos os telões mostram ao mesmo tempo'],
+      [k('?'),'Abre esta ajuda (fora dos campos de digitação)']
+    ])+
+    '<h3>Verificador</h3>'+
+    tbl([[k('Enter'),'No campo de pedra manual: adiciona o número (chega ao painel e ao telão)'],['<b>Resetar rodada</b>','Zera as pedras do verificador']])+
+    '<h3>Navegador e Windows</h3>'+
+    tbl([
+      [k('Ctrl')+' + '+k('F5'),'Recarrega ignorando o cache (use após uma atualização)'],
+      [k('Ctrl')+' + '+k('Tab'),'Próxima aba'],
+      [k('Ctrl')+' + '+k('Shift')+' + '+k('N'),'Janela anônima'],
+      [k('Ctrl')+' + '+k('+')+' / '+k('−')+' / '+k('0'),'Aumenta, diminui e normaliza o zoom'],
+      [k('Win')+' + '+k('P'),'Projetor: Estender ou Duplicar'],
+      [k('Alt')+' + '+k('Tab'),'Alterna entre janelas']
+    ])+
+    '<p class="ajuda-rodape">Só uma pessoa deve operar o painel por vez. Guia completo: ATALHOS.md no repositório.</p>';
+  const ov=document.createElement('div');
+  ov.id='ajudaOverlay'; ov.className='ajuda-overlay';
+  ov.innerHTML='<div class="ajuda-box" role="dialog" aria-modal="true" aria-label="Atalhos e comandos">'+
+    '<div class="ajuda-topo"><span>Atalhos e comandos</span><button onclick="fecharAjuda()" aria-label="Fechar">✕</button></div>'+
+    '<div class="ajuda-corpo">'+html+'</div></div>';
+  ov.addEventListener('click',e=>{ if(e.target===ov) fecharAjuda(); });
+  document.body.appendChild(ov);
+}
+function fecharAjuda(){
+  const ov=document.getElementById('ajudaOverlay');
+  if(ov) ov.remove();
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') fecharAjuda();
+  const alvo=e.target, digitando=alvo&&/^(INPUT|TEXTAREA|SELECT)$/.test(alvo.tagName)||(alvo&&alvo.isContentEditable);
+  const login=!document.getElementById('loginOverlay').classList.contains('hidden');
+  if(e.key==='?' && !digitando && !login){ e.preventDefault(); abrirAjuda(); }
+});
 </script>
 </body>
 </html>

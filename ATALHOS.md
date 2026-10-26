@@ -62,6 +62,7 @@ Não há atalhos de teclado para sortear. Tudo é por botão:
 | **Desfazer** | Tira o último número sorteado, em todas as telas |
 | **Resetar** | Zera o jogo (pede confirmação) |
 | **Abrir DataShow** | Abre o telão em outra aba |
+| **?** (círculo amarelo, canto direito da barra superior) | Abre a ajuda com estes atalhos. A tecla **?** também abre, fora dos campos de digitação; **Esc** fecha |
 | **Trocar tela em todos os aparelhos** | Botões *Sorteio*, *Patrocinadores*, *Vídeo* e *Entrevista*: mudam o que **todos** os telões mostram ao mesmo tempo |
 
 Fluxo no globo físico: escolher **Globo Físico** → digitar o número → **Enter**. O campo esvazia e fica pronto para o próximo.
