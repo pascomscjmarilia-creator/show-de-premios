@@ -132,6 +132,15 @@
   .tipo-cheia { background: var(--laranja); color: white; }
   .modal .btn-fechar { display: block; width: 100%; background: var(--verde-escuro); color: white; border: none; border-radius: 8px; padding: 12px; font-size: 15px; font-weight: 600; cursor: pointer; }
   .modal .btn-fechar:hover { background: var(--verde-medio); }
+  .overlay.ativo .modal { animation: entrar .3s cubic-bezier(.22,1,.36,1), pulsar 1s ease-in-out .3s infinite; }
+  @keyframes pulsar { 0%,100% { box-shadow: 0 0 0 0 rgba(255,214,0,.7); } 50% { box-shadow: 0 0 0 28px rgba(255,214,0,0); } }
+  /* Em tela cheia o alerta fica grande, legível de longe */
+  :fullscreen .modal { max-width: 720px; padding: 48px 56px; }
+  :fullscreen .modal .emoji { font-size: 96px; }
+  :fullscreen .modal h2 { font-size: 44px; }
+  :fullscreen .modal .cartela-info { font-size: 24px; }
+  :fullscreen .modal .tipo-badge { font-size: 22px; }
+  :fullscreen .modal .btn-fechar { font-size: 22px; padding: 18px; }
 </style>
 </head>
 <body>
@@ -140,11 +149,13 @@
   <div>
     <h1>🎱 Verificador de Cartelas</h1>
     <div class="sub">Bingo — Quermesse Paróquia Sagrado Coração de Jesus · Marília-SP</div>
-    <div class="sub" id="verInfo" style="opacity:.5">verificador.html v1.2 · API: verificando…</div>
+    <div class="sub" id="verInfo" style="opacity:.5">verificador.html v1.3 · API: verificando…</div>
   </div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <button class="btn btn-verde" onclick="carregarCartelas()">⬇️ Carregar cartelas</button>
     <button class="btn btn-cinza" onclick="limparTudo()">🗑️ Limpar</button>
+    <button class="btn btn-verde" id="btn-tela-cheia" onclick="alternarTelaCheia()" title="Tela cheia (tecla F)">⛶ Tela cheia (F)</button>
+    <span id="som-status" style="font-size:11px;color:#ffd600">🔇 Clique na página para ativar o som</span>
     <div class="status-canal">
       <div class="dot" id="dot-canal"></div>
       <span id="txt-canal">Canal desconectado</span>
@@ -172,9 +183,9 @@
 <div class="modalidade-bar">
   <label>Prêmios desta rodada:</label>
   <div class="opcoes">
-    <label class="check-item"><input type="checkbox" id="mod-linha" checked> Quina (linha / coluna)</label>
-    <label class="check-item"><input type="checkbox" id="mod-diagonal"> Diagonal</label>
-    <label class="check-item"><input type="checkbox" id="mod-cantos"> Quatro cantos</label>
+    <label class="check-item"><input type="checkbox" id="mod-linha" checked onchange="reavaliarModalidades()"> Quina (linha / coluna)</label>
+    <label class="check-item"><input type="checkbox" id="mod-diagonal" onchange="reavaliarModalidades()"> Diagonal</label>
+    <label class="check-item"><input type="checkbox" id="mod-cantos" checked onchange="reavaliarModalidades()"> Quatro cantos</label>
   </div>
   <span style="font-size:12px;color:var(--texto-mudo);margin-left:8px">+ Cartela cheia (sempre ativa)</span>
 </div>
@@ -228,7 +239,7 @@
 ══════════════════════════════════════════════════════ */
 var API    = 'https://script.google.com/macros/s/AKfycbw3BT9F7RDVEB6HfAEZ7KNHPukNNUySbrduGZsyKppF_kHwVWf7qvH7Tp4v-ZjcHqLJVA/exec';
 var LIMITE = 200;   // cartelas por página — ajuste conforme necessário
-var FRONT_VERSION = '1.2'; // versão deste arquivo verificador.html — atualizar a cada mudança
+var FRONT_VERSION = '1.3'; // versão deste arquivo verificador.html — atualizar a cada mudança
 
 /* ── VERSÃO (front-end + API) ── */
 function atualizarVersaoExibida(versaoApi) {
@@ -476,25 +487,27 @@ function verificarCartelas() {
     var temCheia = marcadas.every(Boolean);
     var temQuina = false;
 
+    var padrao = '';
+
     if (mod.linha) {
       for (var r = 0; r < 5 && !temQuina; r++)
-        if ([0,1,2,3,4].every(function(c) { return m(r,c); })) temQuina = true;
+        if ([0,1,2,3,4].every(function(c) { return m(r,c); })) { temQuina = true; padrao = 'Linha ' + (r + 1) + ' (horizontal)'; }
       for (var c = 0; c < 5 && !temQuina; c++)
-        if ([0,1,2,3,4].every(function(r) { return m(r,c); })) temQuina = true;
+        if ([0,1,2,3,4].every(function(r) { return m(r,c); })) { temQuina = true; padrao = 'Coluna ' + 'BINGO'.charAt(c) + ' (vertical)'; }
     }
     if (!temQuina && mod.diagonal) {
-      if ([0,1,2,3,4].every(function(i) { return m(i,i);   })) temQuina = true;
-      if ([0,1,2,3,4].every(function(i) { return m(i,4-i); })) temQuina = true;
+      if ([0,1,2,3,4].every(function(i) { return m(i,i);   })) { temQuina = true; padrao = 'Diagonal'; }
+      else if ([0,1,2,3,4].every(function(i) { return m(i,4-i); })) { temQuina = true; padrao = 'Diagonal'; }
     }
     if (!temQuina && mod.cantos)
-      if (m(0,0) && m(0,4) && m(4,0) && m(4,4)) temQuina = true;
+      if (m(0,0) && m(0,4) && m(4,0) && m(4,4)) { temQuina = true; padrao = '4 cantos'; }
 
     if (temCheia && !cartela.cheiaJaAlertada) {
       cartela.cheiaJaAlertada = true; cartela.quinaJaAlertada = true;
       agendarAlerta(cartela, 'cheia');
     } else if (temQuina && !cartela.quinaJaAlertada) {
       cartela.quinaJaAlertada = true;
-      agendarAlerta(cartela, 'quina');
+      agendarAlerta(cartela, 'quina', padrao);
     }
 
     cartela._marcadas = marcadas;
@@ -573,8 +586,8 @@ function filtrar(el) {
 /* ══════════════════════════════════════════════════════
    ALERTAS / MODAL
 ══════════════════════════════════════════════════════ */
-function agendarAlerta(cartela, tipo) {
-  alertasFila.push({ cartela: cartela, tipo: tipo });
+function agendarAlerta(cartela, tipo, padrao) {
+  alertasFila.push({ cartela: cartela, tipo: tipo, padrao: padrao || '' });
   if (!alertandoAgora) mostrarProximoAlerta();
 }
 
@@ -586,25 +599,83 @@ function mostrarProximoAlerta() {
   document.getElementById('modal-titulo').textContent = isCheia ? 'CARTELA CHEIA!' : 'QUINA!';
   document.getElementById('modal-badge').textContent  = isCheia ? 'Cartela Cheia' : 'Quina';
   document.getElementById('modal-badge').className    = 'tipo-badge ' + (isCheia ? 'tipo-cheia' : 'tipo-quina');
-  document.getElementById('modal-info').textContent   = '#' + c.id + (c.nome ? ' — ' + c.nome : '');
+  document.getElementById('modal-info').textContent   = '#' + c.id + (c.nome ? ' — ' + c.nome : '') + (!isCheia && item.padrao ? ' · ' + item.padrao : '') + (alertasFila.length ? '  (+' + alertasFila.length + ' na fila)' : '');
   document.getElementById('overlay').classList.add('ativo');
+  tocarAlarme(isCheia);
+  piscarTitulo(isCheia ? '🏆 CARTELA CHEIA!' : '⭐ QUINA!');
+}
+
+/* ── Som: um único AudioContext, liberado no primeiro clique/tecla (regra do navegador) ── */
+var _audioCtx = null;
+function liberarAudio() {
   try {
-    var ctx = new (window.AudioContext || window.webkitAudioContext)();
-    var notas = isCheia ? [523,659,784,1047,1319] : [523,659,784];
+    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (_audioCtx.state === 'suspended') _audioCtx.resume();
+    var el = document.getElementById('som-status');
+    if (el && _audioCtx.state === 'running') { el.textContent = '🔊 Som ativado'; el.style.color = '#9be7a0'; }
+  } catch (ignore) {}
+}
+['pointerdown', 'keydown', 'touchstart'].forEach(function(ev) {
+  document.addEventListener(ev, liberarAudio, { passive: true });
+});
+
+function tocarAlarme(isCheia) {
+  liberarAudio();
+  if (!_audioCtx) return;
+  var ctx = _audioCtx;
+  var notas = isCheia ? [523,659,784,1047,1319] : [523,659,784];
+  var voltas = isCheia ? 3 : 2;
+  for (var v = 0; v < voltas; v++) {
     notas.forEach(function(freq, i) {
+      var t0 = ctx.currentTime + v * (notas.length * .18 + .4) + i * .18;
       var osc = ctx.createOscillator(), gain = ctx.createGain();
       osc.connect(gain); gain.connect(ctx.destination);
       osc.frequency.value = freq; osc.type = 'sine';
-      gain.gain.setValueAtTime(0, ctx.currentTime + i*.18);
-      gain.gain.linearRampToValueAtTime(.3, ctx.currentTime + i*.18+.05);
-      gain.gain.linearRampToValueAtTime(0,  ctx.currentTime + i*.18+.15);
-      osc.start(ctx.currentTime + i*.18); osc.stop(ctx.currentTime + i*.18+.2);
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(.45, t0 + .05);
+      gain.gain.linearRampToValueAtTime(0,   t0 + .15);
+      osc.start(t0); osc.stop(t0 + .2);
     });
-  } catch(ignore) {}
+  }
+}
+
+/* ── Título da aba pisca enquanto há alerta aberto (útil se a aba estiver em segundo plano) ── */
+var _tituloOriginal = document.title, _tituloTimer = null;
+function piscarTitulo(texto) {
+  clearInterval(_tituloTimer);
+  var alterna = false;
+  _tituloTimer = setInterval(function() {
+    alterna = !alterna;
+    document.title = alterna ? texto : _tituloOriginal;
+  }, 700);
+}
+function pararTitulo() { clearInterval(_tituloTimer); document.title = _tituloOriginal; }
+
+/* ── Tela cheia (botão ou tecla F). O alerta é parte da página, então aparece também em tela cheia ── */
+function alternarTelaCheia() {
+  liberarAudio();
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function(){});
+  else document.exitFullscreen();
+}
+document.addEventListener('keydown', function(e) {
+  var alvo = e.target && e.target.tagName;
+  if (alvo === 'INPUT' || alvo === 'TEXTAREA') return;
+  if (e.key === 'f' || e.key === 'F') alternarTelaCheia();
+});
+document.addEventListener('fullscreenchange', function() {
+  var b = document.getElementById('btn-tela-cheia');
+  if (b) b.textContent = document.fullscreenElement ? '⛶ Sair da tela cheia (F)' : '⛶ Tela cheia (F)';
+});
+
+/* Mudou o prêmio da rodada: reavalia as cartelas já carregadas */
+function reavaliarModalidades() {
+  verificarCartelas();
+  atualizarContadores();
 }
 
 function fecharModal() {
   document.getElementById('overlay').classList.remove('ativo');
+  if (!alertasFila.length) pararTitulo();
   setTimeout(mostrarProximoAlerta, 300);
 }
 
