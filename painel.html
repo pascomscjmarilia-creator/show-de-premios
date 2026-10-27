@@ -457,6 +457,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
             <button class="btn btn-ghost" onclick="testarScript()"><i class="ti ti-plug"></i> Testar</button>
           </div>
           <div class="feedback" id="fbScript"></div>
+          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.3 · API: verificando…</div>
         </div>
       </div>
 
@@ -856,9 +857,9 @@ const DEFAULT_AUTH_URL = 'https://script.google.com/macros/s/AKfycbz2mFKaGfgZtBu
 const LS_SCRIPT    = 'bingo_script_url';
 const LS_SHEET     = 'bingo_sheet_cfg';
 const LS_SPONSORS  = 'bingo_sponsors';
-const SCRIPT_PATROC = 'https://script.google.com/macros/s/AKfycbwEodHdDBfhSgDTn94PJz4no2iJ30T6NpqCge7MlFOtS3BaNmJwO2g0K_ojCnh3Duzj/exec';
+const SCRIPT_PATROC = 'https://script.google.com/macros/s/AKfycbw3BT9F7RDVEB6HfAEZ7KNHPukNNUySbrduGZsyKppF_kHwVWf7qvH7Tp4v-ZjcHqLJVA/exec';
 /* Script só dos vídeos (apps-script/videos.gs, planilha nova). Vazio = usa o script único acima. */
-const VIDEO_SCRIPT = 'https://script.google.com/macros/s/AKfycbxi282C_QHoo5Xm7bqinACTWwzNh9x32aWikssVJ7REoIH1lnOSucgPHslkhHvf8PSP/exec';
+const VIDEO_SCRIPT = 'https://script.google.com/macros/s/AKfycbw3BT9F7RDVEB6HfAEZ7KNHPukNNUySbrduGZsyKppF_kHwVWf7qvH7Tp4v-ZjcHqLJVA/exec';
 const COLS = [
   { l:'B', s:1,  e:15, hex:'#b91c1c', hdr:'#f87171' },
   { l:'I', s:16, e:30, hex:'#1d4ed8', hdr:'#60a5fa' },
@@ -1488,6 +1489,14 @@ async function testarPlanilha(){
 /* ══════════════════════════════════════════════════════════
    INIT AUTH
 ══════════════════════════════════════════════════════════ */
+/* Versão do arquivo e do Apps Script (a ação desconhecida responde só { versao }) */
+const FRONT_VERSION = '1.3'; /* versão deste painel.html — atualizar a cada mudança */
+(function(){
+  _scJsonp(SCRIPT_PATROC + '?acao=_ping', function(err, data){
+    const el = document.getElementById('verInfo');
+    if(el) el.textContent = 'painel.html v' + FRONT_VERSION + ' · API: ' + (err || !data || !data.versao ? 'sem resposta' : data.versao);
+  });
+})();
 (function(){
   authUrl=ls(LS_AUTH_URL)||DEFAULT_AUTH_URL;
   if(authUrl) document.getElementById('loginAuthUrl').value=authUrl;
