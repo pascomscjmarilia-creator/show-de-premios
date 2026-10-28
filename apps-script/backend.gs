@@ -20,11 +20,12 @@
 /* Mude a VERSAO a cada edição. Ela aparece no cadastro, no verificador e no painel
  * ("API: ..."), então dá para conferir se a nova versão foi mesmo publicada.
  * Changelog:
+ *   2.1.1 (2026-10-28) — ação pública "_info": nome da planilha ligada e nº de linhas por aba (sem dados).
  *   2.1.0 (2026-10-28) — token de acesso (assinado) para ações que gravam ou mostram dados
  *                        pessoais. Desligado por padrão: ligue EXIGIR_TOKEN depois de testar.
  *   2.0.1 (2026-10-26) — doGet único: repassa ?action= (login) para o Auth.gs.
  *   2.0.0 (2026-10-26) — script único na planilha nova: cartelas, patrocinadores e vídeos. */
-var VERSAO = '2.1.0 (28/10/2026)';
+var VERSAO = '2.1.1 (28/10/2026)';
 
 /* ── Proteção de acesso ───────────────────────────────────────────────
  * false = tudo aberto como antes (modo de transição).
@@ -63,6 +64,7 @@ function doGet(e) {
       case 'cadastrarCartelasEmLote': out = ok(cadastrarLote_(p.quantidade)); break;
       case 'marcarSorteada':          out = ok(marcarSorteada_(p.id)); break;
       case 'resetarSorteios':         out = ok(resetarSorteios_()); break;
+      case '_info':                   out = ok(info_()); break;
       case 'listarPatrocinios':       out = listarPatrocinios_(); break;
       case 'listarVideos':            out = ok({ videos: listarVideos_() }); break;
       case 'adicionarVideo':          out = ok(adicionarVideo_(p.titulo, p.videoId)); break;
@@ -167,6 +169,17 @@ function comLock_(fn) {
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try { return fn(); } finally { lock.releaseLock(); }
+}
+
+/* Diagnóstico: qual planilha está ligada a este script e quantas linhas (sem o cabeçalho) cada aba tem. */
+function info_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  return {
+    planilha: ss.getName(),
+    abas: ss.getSheets().map(function (s) {
+      return { nome: s.getName(), linhas: Math.max(0, s.getLastRow() - 1) };
+    })
+  };
 }
 
 /* ───────────── cartelas ───────────── */
