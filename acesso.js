@@ -7,7 +7,7 @@
  */
 (function () {
   var LS_SESSAO = 'bingo_session_v1';
-  var AUTH_URL = 'https://script.google.com/macros/s/AKfycbw3BT9F7RDVEB6HfAEZ7KNHPukNNUySbrduGZsyKppF_kHwVWf7qvH7Tp4v-ZjcHqLJVA/exec';
+  var AUTH_URL = 'https://script.google.com/macros/s/AKfycbxi282C_QHoo5Xm7bqinACTWwzNh9x32aWikssVJ7REoIH1lnOSucgPHslkhHvf8PSP/exec';
 
   function lerSessao() {
     try {
