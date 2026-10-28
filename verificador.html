@@ -10,6 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="sirene.js"></script>
+<script src="acesso.js"></script>
 <style>
   :root {
     --verde-escuro: #0A3D1A;
@@ -150,7 +151,7 @@
   <div>
     <h1>🎱 Verificador de Cartelas</h1>
     <div class="sub">Bingo — Quermesse Paróquia Sagrado Coração de Jesus · Marília-SP</div>
-    <div class="sub" id="verInfo" style="opacity:.5">verificador.html v1.4 · API: verificando…</div>
+    <div class="sub" id="verInfo" style="opacity:.5">verificador.html v1.5 · API: verificando…</div>
   </div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <button class="btn btn-verde" onclick="carregarCartelas()">⬇️ Carregar cartelas</button>
@@ -245,7 +246,7 @@
 ══════════════════════════════════════════════════════ */
 var API    = 'https://script.google.com/macros/s/AKfycbw3BT9F7RDVEB6HfAEZ7KNHPukNNUySbrduGZsyKppF_kHwVWf7qvH7Tp4v-ZjcHqLJVA/exec';
 var LIMITE = 200;   // cartelas por página — ajuste conforme necessário
-var FRONT_VERSION = '1.4'; // versão deste arquivo verificador.html — atualizar a cada mudança
+var FRONT_VERSION = '1.5'; // versão deste arquivo verificador.html — atualizar a cada mudança
 
 /* ── VERSÃO (front-end + API) ── */
 function atualizarVersaoExibida(versaoApi) {
@@ -278,6 +279,7 @@ function jsonp(url, cb) {
   window[id] = function(data) {
     try { delete window[id]; } catch(e) { window[id] = void 0; }
     tag.parentNode && tag.parentNode.removeChild(tag);
+    if (Acesso.negado(data)) { Acesso.pedirLogin(function() { jsonp(url, cb); }); return; }
     cb(null, data);
   };
   tag.onerror = function() {
@@ -285,7 +287,7 @@ function jsonp(url, cb) {
     tag.parentNode && tag.parentNode.removeChild(tag);
     cb(new Error('Erro de rede'));
   };
-  tag.src = url + '&callback=' + id + '&_=' + Date.now();
+  tag.src = Acesso.comToken(url) + '&callback=' + id + '&_=' + Date.now();
   document.head.appendChild(tag);
 }
 

@@ -1,0 +1,13 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "bingo": {
+      "ultimaMensagem": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        ".validate": "newData.hasChildren(['tipo', 'ts']) && newData.child('tipo').isString() && newData.child('tipo').val().length <= 40 && newData.child('ts').isNumber()"
+      }
+    }
+  }
+}

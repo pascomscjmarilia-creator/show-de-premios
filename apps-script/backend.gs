@@ -20,9 +20,23 @@
 /* Mude a VERSAO a cada edição. Ela aparece no cadastro, no verificador e no painel
  * ("API: ..."), então dá para conferir se a nova versão foi mesmo publicada.
  * Changelog:
+ *   2.1.0 (2026-10-28) — token de acesso (assinado) para ações que gravam ou mostram dados
+ *                        pessoais. Desligado por padrão: ligue EXIGIR_TOKEN depois de testar.
  *   2.0.1 (2026-10-26) — doGet único: repassa ?action= (login) para o Auth.gs.
  *   2.0.0 (2026-10-26) — script único na planilha nova: cartelas, patrocinadores e vídeos. */
-var VERSAO = '2.0.1 (26/10/2026)';
+var VERSAO = '2.1.0 (28/10/2026)';
+
+/* ── Proteção de acesso ───────────────────────────────────────────────
+ * false = tudo aberto como antes (modo de transição).
+ * true  = as ações em PROTEGIDAS só respondem com um token válido, obtido no login.
+ * O token é assinado com um segredo guardado nas "Propriedades do script" (criado sozinho). */
+var EXIGIR_TOKEN = false;
+var PROTEGIDAS = {
+  listarCartelas: 1, buscarCartela: 1, atualizarCartela: 1, cadastrarCartela: 1,
+  cadastrarCartelasEmLote: 1, marcarSorteada: 1, resetarSorteios: 1,
+  adicionarVideo: 1, removerVideo: 1
+};
+var TOKEN_HORAS_ADMIN = 12; /* administradores não têm prazo de acesso: o token vale 12 h */
 var ABA_CARTELAS = 'Cartelas';
 var ABA_PATROCINIO = 'Lista_Patrocinio';
 var ABA_VIDEOS = 'Videos';
@@ -35,6 +49,12 @@ function doGet(e) {
   if (p.action) return handleRequest(e);
   var out;
   try {
+    if (EXIGIR_TOKEN && PROTEGIDAS[p.acao] && !verificarToken_(p.token)) {
+      return responder_({
+        sucesso: false,
+        dados: { mensagem: 'Não autorizado. Faça login novamente.', naoAutorizado: true }
+      }, p.callback);
+    }
     switch (p.acao) {
       case 'listarCartelas':          out = ok(listarCartelas_(p)); break;
       case 'buscarCartela':           out = ok(buscarCartela_(p.id)); break;
@@ -47,12 +67,54 @@ function doGet(e) {
       case 'listarVideos':            out = ok({ videos: listarVideos_() }); break;
       case 'adicionarVideo':          out = ok(adicionarVideo_(p.titulo, p.videoId)); break;
       case 'removerVideo':            out = ok(removerVideo_(p.videoId)); break;
-      default:                        out = { sucesso: true, versao: VERSAO };
+      default:                        out = { sucesso: true, versao: VERSAO + (EXIGIR_TOKEN ? ' · protegido' : ' · aberto') };
     }
   } catch (err) {
     out = erro(String(err && err.message || err));
   }
   return responder_(out, p.callback);
+}
+
+/* ───────────── token de acesso ─────────────
+ * Formato: base64url(JSON{c:cpf, a:admin, e:expiraEm}) + '.' + base64url(HMAC-SHA256).
+ * gerarToken_ é chamado pelo login (Auth.gs); verificarToken_ confere nas ações protegidas. */
+function segredoToken_() {
+  var props = PropertiesService.getScriptProperties();
+  var s = props.getProperty('TOKEN_SECRET');
+  if (!s) {
+    s = Utilities.getUuid() + Utilities.getUuid() + Utilities.getUuid();
+    props.setProperty('TOKEN_SECRET', s);
+  }
+  return s;
+}
+
+function b64url_(bytes) {
+  return Utilities.base64EncodeWebSafe(bytes).replace(/=+$/, '');
+}
+
+function assinar_(texto) {
+  return b64url_(Utilities.computeHmacSha256Signature(texto, segredoToken_()));
+}
+
+/* expiraEm em milissegundos; sem valor (administrador) = agora + TOKEN_HORAS_ADMIN horas. */
+function gerarToken_(cpf, isAdmin, expiraEm) {
+  var exp = expiraEm || (Date.now() + TOKEN_HORAS_ADMIN * 3600 * 1000);
+  var corpo = b64url_(Utilities.newBlob(JSON.stringify({ c: String(cpf), a: isAdmin ? 1 : 0, e: exp })).getBytes());
+  return corpo + '.' + assinar_(corpo);
+}
+
+/* Devolve { c, a, e } se o token for autêntico e não tiver expirado; senão null. */
+function verificarToken_(token) {
+  try {
+    var partes = String(token || '').split('.');
+    if (partes.length !== 2) return null;
+    var esperado = assinar_(partes[0]), dado = partes[1], dif = esperado.length ^ dado.length;
+    for (var i = 0; i < esperado.length && i < dado.length; i++) dif |= esperado.charCodeAt(i) ^ dado.charCodeAt(i);
+    if (dif !== 0) return null;
+    var bytes = Utilities.base64DecodeWebSafe(partes[0] + '===='.slice(partes[0].length % 4 || 4));
+    var info = JSON.parse(Utilities.newBlob(bytes).getDataAsString());
+    return (info && info.e > Date.now()) ? info : null;
+  } catch (err) { return null; }
 }
 
 function ok(dados) { return { sucesso: true, dados: dados }; }
