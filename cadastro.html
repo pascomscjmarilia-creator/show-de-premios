@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Venda de Cartelas — Bingo Paróquia</title>
+<title>Venda de Cartelas — Show de Prêmios</title>
 <style>
   :root {
     --verde-escuro: #0A3D1A;
@@ -136,9 +136,9 @@
 <div class="header">
   <div class="header-icon">🎱</div>
   <div>
-    <h1>Venda de Cartelas — Bingo Paróquia</h1>
+    <h1>Venda de Cartelas — Show de Prêmios</h1>
     <p>Paróquia Sagrado Coração de Jesus · Marília-SP</p>
-    <p style="font-size:11px;color:rgba(255,255,255,.5);margin-top:3px" id="verInfo">cadastro.html v1.7 · API: verificando…</p>
+    <p style="font-size:11px;color:rgba(255,255,255,.5);margin-top:3px" id="verInfo">cadastro.html v1.8 · API: verificando…</p>
   </div>
   <a class="header-voltar" href="index.html" title="Voltar para a tela principal">🏠</a>
 </div>
@@ -356,7 +356,7 @@
 <script src="acesso.js"></script>
 <script>
 var API = 'https://script.google.com/macros/s/AKfycbxi282C_QHoo5Xm7bqinACTWwzNh9x32aWikssVJ7REoIH1lnOSucgPHslkhHvf8PSP/exec';
-var FRONT_VERSION = '1.7'; // versão deste arquivo cadastro.html — atualizar a cada mudança
+var FRONT_VERSION = '1.8'; // versão deste arquivo cadastro.html — atualizar a cada mudança
 
 var cartelaAtual  = null;
 var historicoSessao = [];
@@ -594,7 +594,7 @@ document.getElementById('inputId').addEventListener('keydown', function(e) {
 
 /* ══════════════════════════════════════════════════════
    CRIAR NOVA CARTELA
-   Colunas do bingo: B(1-15) I(16-30) N(31-45) G(46-60) O(61-75)
+   Colunas da cartela: B(1-15) I(16-30) N(31-45) G(46-60) O(61-75)
    Centro (linha 2, coluna 2 — 0-indexado) é sempre FREE.
 ══════════════════════════════════════════════════════ */
 var COLUNAS = [

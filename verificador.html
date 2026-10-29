@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Verificador de Cartelas — Bingo Paróquia</title>
+<title>Verificador de Cartelas — Show de Prêmios</title>
 <!-- Firebase (permite abrir esta tela em outro aparelho/rede e continuar
      sincronizada com o painel em tempo real) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -159,8 +159,8 @@
 <header>
   <div>
     <h1>🎱 Verificador de Cartelas</h1>
-    <div class="sub">Bingo — Quermesse Paróquia Sagrado Coração de Jesus · Marília-SP</div>
-    <div class="sub" id="verInfo" style="opacity:.5">verificador.html v1.9 · API: verificando…</div>
+    <div class="sub">Show de Prêmios — Quermesse Paróquia Sagrado Coração de Jesus · Marília-SP</div>
+    <div class="sub" id="verInfo" style="opacity:.5">verificador.html v1.10 · API: verificando…</div>
   </div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <button class="btn btn-verde" onclick="carregarCartelas()">⬇️ Carregar cartelas</button>
@@ -275,7 +275,7 @@ var termoBusca  = '';
 var itemAtual   = null;  // alerta em exibição (para registrar o ganhador ao confirmar)
 var registrados = 0;
 var LIMITE = 200;   // cartelas por página — ajuste conforme necessário
-var FRONT_VERSION = '1.9'; // versão deste arquivo verificador.html — atualizar a cada mudança
+var FRONT_VERSION = '1.10'; // versão deste arquivo verificador.html — atualizar a cada mudança
 
 /* ── VERSÃO (front-end + API) ── */
 function atualizarVersaoExibida(versaoApi) {
@@ -876,7 +876,7 @@ function iniciarCanal() {
       processarMensagemVerificador(e && e.data);
     };
     document.getElementById('dot-canal').classList.add('ativo');
-    document.getElementById('txt-canal').textContent = 'Canal "bingo-canal" ativo';
+    document.getElementById('txt-canal').textContent = 'Canal do jogo ativo';
   } catch(e) {
     document.getElementById('txt-canal').textContent = 'BroadcastChannel indisponível';
   }

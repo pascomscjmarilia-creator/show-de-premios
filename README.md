@@ -1,2 +1,2 @@
 # show-de-premios
-Sistema de Bingo - Quermesse Paróquia Sagrado Coração de Jesus
+Sistema do Show de Prêmios - Quermesse Paróquia Sagrado Coração de Jesus

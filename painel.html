@@ -472,7 +472,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
             <button class="btn btn-ghost" onclick="testarScript()"><i class="ti ti-plug"></i> Testar</button>
           </div>
           <div class="feedback" id="fbScript"></div>
-          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.6 · API: verificando…</div>
+          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.7 · API: verificando…</div>
         </div>
       </div>
 
@@ -1403,11 +1403,11 @@ function ocultarCartelaTelao(){
 /* Reset via GET (JSONP) — evita CORS do POST.
    Isto reseta apenas o sorteio de cartelas de patrocínio/prêmio
    (histórico de compradores sorteados). NÃO mexe nos números do
-   bingo (called/hist) — para reiniciar o jogo de números use o
+   jogo (called/hist) — para reiniciar o jogo de números use o
    botão "Resetar" da aba de pedras, que já avisa painel + verificador
    + datashow. */
 function confirmarResetSorteios(){
-  if(!confirm('Resetar TODOS os sorteios de cartelas de patrocínio? Isso NÃO afeta os números do bingo já sorteados. Esta ação não pode ser desfeita.')) return;
+  if(!confirm('Resetar TODOS os sorteios de cartelas de patrocínio? Isso NÃO afeta os números já sorteados. Esta ação não pode ser desfeita.')) return;
   if(!scriptUrl){ fb('fbCartela','err','Configure o Apps Script.'); return; }
   const url = scriptUrl + '?acao=resetarSorteios';
   _scJsonp(url, function(err, data){
@@ -1544,7 +1544,7 @@ async function testarPlanilha(){
    INIT AUTH
 ══════════════════════════════════════════════════════════ */
 /* Versão do arquivo e do Apps Script (a ação desconhecida responde só { versao }) */
-const FRONT_VERSION = '1.6'; /* versão deste painel.html — atualizar a cada mudança */
+const FRONT_VERSION = '1.7'; /* versão deste painel.html — atualizar a cada mudança */
 (function(){
   _scJsonp(SCRIPT_PATROC + '?acao=_ping', function(err, data){
     const el = document.getElementById('verInfo');
