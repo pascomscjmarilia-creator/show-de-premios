@@ -138,7 +138,7 @@
   <div>
     <h1>Venda de Cartelas — Bingo Paróquia</h1>
     <p>Paróquia Sagrado Coração de Jesus · Marília-SP</p>
-    <p style="font-size:11px;color:rgba(255,255,255,.5);margin-top:3px" id="verInfo">cadastro.html v1.6 · API: verificando…</p>
+    <p style="font-size:11px;color:rgba(255,255,255,.5);margin-top:3px" id="verInfo">cadastro.html v1.7 · API: verificando…</p>
   </div>
   <a class="header-voltar" href="index.html" title="Voltar para a tela principal">🏠</a>
 </div>
@@ -147,6 +147,41 @@
 
   <!-- COLUNA ESQUERDA -->
   <div style="display:flex;flex-direction:column;gap:16px">
+
+    <!-- VENDER POR SÉRIE -->
+    <div class="card" id="cardSerie">
+      <div class="card-title">📄 Vender por série (folha com 4 cartelas)</div>
+      <div class="busca-wrap">
+        <input type="number" id="inputSerie" placeholder="Número da série. Ex: 7" min="1"
+               onkeydown="if(event.key==='Enter') buscarSerie()">
+        <button class="btn-buscar" onclick="buscarSerie()">Buscar série</button>
+      </div>
+      <div class="cartela-status" id="statusSerie">
+        <span class="status-icon" id="statusSerieIcon"></span>
+        <span id="statusSerieTexto"></span>
+      </div>
+
+      <div id="serieForm" style="display:none;margin-top:12px">
+        <div class="cartela-info-box">
+          <div class="info-item"><div class="label">Série</div><div class="valor" id="serieNumero">—</div></div>
+          <div class="info-item"><div class="label">Cartelas</div><div class="valor sm" id="serieCartelas">—</div></div>
+          <div class="info-item"><div class="label">Vendidas</div><div class="valor sm" id="serieVendidas">—</div></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Nome completo *</label><input type="text" id="sNome" placeholder="João da Silva"></div>
+          <div class="form-group"><label>Telefone / WhatsApp</label><input type="text" id="sTelefone" placeholder="(14) 99999-0000" oninput="mascaraTelefone(this)"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Status de pagamento</label>
+            <select id="sPaga"><option value="true">✅ Pago</option><option value="false">⏳ Pendente</option></select></div>
+          <div class="form-group"><label>Data da venda</label><input type="date" id="sData"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button class="btn-primary" id="btnSalvarSerie" onclick="salvarSerie()">💾 Salvar série (as 4 cartelas)</button>
+          <button class="btn-secondary" style="margin-top:0" onclick="limparSerie()">✕ Cancelar</button>
+        </div>
+      </div>
+    </div>
 
     <!-- BUSCA -->
     <div class="card">
@@ -191,6 +226,26 @@
           </div>
           <div style="font-size:11px; color:var(--texto-sec); margin-top:6px">O Apps Script gera e salva todas de uma vez (uma única escrita na planilha).</div>
           <div class="criar-resultado" id="loteResultado"></div>
+        </div>
+
+        <div style="border-top:1px dashed var(--cinza-borda); margin-top:16px; padding-top:14px">
+          <div style="font-size:12px; font-weight:600; color:var(--verde-escuro); text-transform:uppercase; letter-spacing:.05em; margin-bottom:10px">📄 Gerar séries em lote (4 cartelas cada)</div>
+          <div class="form-row" style="grid-template-columns: 1fr auto; align-items:end">
+            <div class="form-group">
+              <label>Quantidade de séries</label>
+              <input type="number" id="serieQtd" min="1" max="5000" value="25">
+            </div>
+            <button class="btn-buscar" id="btnSerieLote" onclick="gerarSeriesLote()" style="height:38px">Gerar séries</button>
+          </div>
+          <div style="font-size:11px; color:var(--texto-sec); margin-top:6px">Cada série cria 4 cartelas novas, com números próprios, em sequência.</div>
+          <div class="criar-resultado" id="serieLoteResultado"></div>
+        </div>
+
+        <div style="border-top:1px dashed var(--cinza-borda); margin-top:16px; padding-top:14px">
+          <div style="font-size:12px; font-weight:600; color:var(--verde-escuro); text-transform:uppercase; letter-spacing:.05em; margin-bottom:10px">🗂️ Organizar cartelas existentes em séries</div>
+          <div style="font-size:11px; color:var(--texto-sec); margin-bottom:8px">Agrupa as cartelas que ainda não têm série em blocos de 4, em ordem de número (10001–10004 = série 1, e assim por diante). Sobras ficam sem série. Primeiro mostra o que vai acontecer.</div>
+          <button class="btn-secondary" style="margin-top:0" onclick="organizarSeries()">Organizar em séries…</button>
+          <div class="criar-resultado" id="organizarResultado"></div>
         </div>
       </div>
     </div>
@@ -301,7 +356,7 @@
 <script src="acesso.js"></script>
 <script>
 var API = 'https://script.google.com/macros/s/AKfycbxi282C_QHoo5Xm7bqinACTWwzNh9x32aWikssVJ7REoIH1lnOSucgPHslkhHvf8PSP/exec';
-var FRONT_VERSION = '1.6'; // versão deste arquivo cadastro.html — atualizar a cada mudança
+var FRONT_VERSION = '1.7'; // versão deste arquivo cadastro.html — atualizar a cada mudança
 
 var cartelaAtual  = null;
 var historicoSessao = [];
@@ -501,8 +556,9 @@ function renderHistorico() {
     return;
   }
   el.innerHTML = historicoSessao.map(function(h) {
-    return '<div class="hist-item" onclick="recarregarCartela(' + h.id + ')">' +
-      '<span class="id">#' + h.id + '</span>' +
+    var clique = h.serie ? 'recarregarSerie(' + h.serie + ')' : 'recarregarCartela(' + h.id + ')';
+    return '<div class="hist-item" onclick="' + clique + '">' +
+      '<span class="id">' + (h.serie ? 'Série ' + h.serie : '#' + h.id) + '</span>' +
       '<span class="nome">' + (h.nome || '—') + '</span>' +
       '<span class="paga ' + (h.paga ? 'sim' : 'nao') + '">' + (h.paga ? 'Pago' : 'Pendente') + '</span>' +
     '</div>';
@@ -733,6 +789,151 @@ function gerarLote() {
     res.textContent = '✅ ' + d.total + ' cartelas criadas (de #' + d.primeiroId + ' a #' + d.ultimoId + ').';
     toast('✅ ' + d.total + ' cartelas geradas com sucesso!');
     carregarEstatisticas();
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   SÉRIES — uma folha impressa com 4 cartelas
+══════════════════════════════════════════════════════ */
+var serieAtual = null;
+
+function setStatusSerie(tipo, icon, texto) {
+  var el = document.getElementById('statusSerie');
+  el.className = 'cartela-status ' + (tipo ? tipo + ' show' : '');
+  document.getElementById('statusSerieIcon').textContent  = icon;
+  document.getElementById('statusSerieTexto').textContent = texto;
+}
+
+function limparSerie() {
+  serieAtual = null;
+  document.getElementById('serieForm').style.display = 'none';
+  document.getElementById('inputSerie').value = '';
+  setStatusSerie('', '', '');
+  document.getElementById('inputSerie').focus();
+}
+
+function recarregarSerie(n) {
+  document.getElementById('inputSerie').value = n;
+  buscarSerie();
+}
+
+function buscarSerie() {
+  var n = parseInt(document.getElementById('inputSerie').value, 10);
+  if (!n || n < 1) { toast('Informe o número da série', true); return; }
+  serieAtual = null;
+  document.getElementById('serieForm').style.display = 'none';
+  setStatusSerie('', '', '');
+
+  jsonp(API + '?acao=buscarSerie&serie=' + n, function(err, data) {
+    if (err || !data) { setStatusSerie('nao-encontrada', '❌', 'Erro de conexão. Tente novamente.'); return; }
+    if (!data.sucesso) {
+      setStatusSerie('nao-encontrada', '❌', (data.dados && data.dados.mensagem) || ('Série ' + n + ' não encontrada.'));
+      return;
+    }
+    var d = data.dados;
+    serieAtual = d;
+    var ids = d.cartelas.map(function(c) { return '#' + c.id; }).join(' · ');
+    document.getElementById('serieNumero').textContent   = d.serie;
+    document.getElementById('serieCartelas').textContent = ids;
+    document.getElementById('serieVendidas').textContent = d.vendidas + ' de ' + d.cartelas.length;
+
+    var comprador = '';
+    d.cartelas.forEach(function(c) { if (c.comprador && !comprador) comprador = c.comprador; });
+    if (d.vendidas === d.cartelas.length) {
+      setStatusSerie('vendida', '⚠️', 'Série já vendida para: ' + comprador + '. Você pode atualizar os dados.');
+    } else if (d.vendidas > 0) {
+      setStatusSerie('vendida', '⚠️', 'Série com ' + d.vendidas + ' de ' + d.cartelas.length + ' cartelas vendidas (' + comprador + '). Salvar vai aplicar os dados a todas.');
+    } else {
+      setStatusSerie('livre', '✅', 'Série disponível (' + d.cartelas.length + ' cartelas). Preencha os dados do comprador.');
+    }
+    var primeira = d.cartelas[0] || {};
+    document.getElementById('sNome').value     = comprador || '';
+    document.getElementById('sTelefone').value = primeira.telefone || '';
+    document.getElementById('sPaga').value     = primeira.paga ? 'true' : 'false';
+    document.getElementById('sData').value     = new Date().toISOString().split('T')[0];
+    document.getElementById('serieForm').style.display = 'block';
+    document.getElementById('sNome').focus();
+  });
+}
+
+function salvarSerie() {
+  if (!serieAtual) return;
+  var nome = document.getElementById('sNome').value.trim();
+  if (!nome) { toast('Informe o nome do comprador', true); return; }
+  var paga = document.getElementById('sPaga').value === 'true';
+  var tel  = document.getElementById('sTelefone').value;
+  document.getElementById('btnSalvarSerie').disabled = true;
+
+  jsonp(API + '?acao=atualizarSerie&serie=' + serieAtual.serie
+      + '&nome=' + encodeURIComponent(nome)
+      + '&telefone=' + encodeURIComponent(tel)
+      + '&paga=' + paga
+      + '&dataVenda=' + document.getElementById('sData').value,
+    function(err, data) {
+      document.getElementById('btnSalvarSerie').disabled = false;
+      if (err || !data || !data.sucesso) {
+        toast('Erro ao salvar: ' + ((data && data.dados && data.dados.mensagem) || (err && err.message) || 'desconhecido'), true);
+        return;
+      }
+      toast('✅ Série ' + serieAtual.serie + ' (' + data.dados.cartelas.length + ' cartelas) salva para ' + nome + '!');
+      historicoSessao.unshift({ serie: serieAtual.serie, id: data.dados.cartelas[0], nome: nome, telefone: tel, paga: paga });
+      renderHistorico();
+      carregarEstatisticas();
+      limparSerie();
+    }
+  );
+}
+
+function gerarSeriesLote() {
+  var qtd = parseInt(document.getElementById('serieQtd').value, 10);
+  if (!qtd || qtd < 1) { toast('Informe uma quantidade válida', true); return; }
+  if (qtd > 5000) { toast('Máximo de 5.000 séries por vez', true); return; }
+  if (!confirm('Gerar ' + qtd + ' séries (' + (qtd * 4) + ' cartelas novas) na planilha agora?')) return;
+
+  var res = document.getElementById('serieLoteResultado');
+  res.className = 'criar-resultado show';
+  res.textContent = '⏳ Gerando ' + qtd + ' séries… isso pode levar alguns segundos.';
+  var btn = document.getElementById('btnSerieLote');
+  btn.disabled = true;
+
+  jsonp(API + '?acao=cadastrarSeriesEmLote&quantidade=' + qtd, function(err, data) {
+    btn.disabled = false;
+    if (err || !data || !data.sucesso) {
+      res.textContent = '❌ Erro: ' + ((data && data.dados && data.dados.mensagem) || (err && err.message) || 'desconhecido');
+      toast('Erro ao gerar séries', true);
+      return;
+    }
+    var d = data.dados;
+    res.textContent = '✅ ' + d.totalSeries + ' séries criadas (de ' + d.primeiraSerie + ' a ' + d.ultimaSerie + '), cartelas #' + d.primeiroId + ' a #' + d.ultimoId + '.';
+    toast('✅ ' + d.totalSeries + ' séries geradas!');
+    carregarEstatisticas();
+  });
+}
+
+function organizarSeries() {
+  var res = document.getElementById('organizarResultado');
+  res.className = 'criar-resultado show';
+  res.textContent = '⏳ Verificando…';
+  jsonp(API + '?acao=organizarSeries', function(err, data) {
+    if (err || !data || !data.sucesso) {
+      res.textContent = '❌ Erro: ' + ((data && data.dados && data.dados.mensagem) || (err && err.message) || 'desconhecido');
+      return;
+    }
+    var d = data.dados;
+    if (!d.series) { res.textContent = 'Nada a organizar: ' + (d.cartelasSemSerie ? d.cartelasSemSerie + ' cartela(s) sem série, menos de 4.' : 'todas as cartelas já têm série.'); return; }
+    var msg = 'Vai criar ' + d.series + ' séries (de ' + d.primeiraSerie + ' a ' + d.ultimaSerie + '), com 4 cartelas cada, em ordem de número.\n'
+            + (d.cartelasSemSerie ? d.cartelasSemSerie + ' cartela(s) ficam sem série.\n' : '') + '\nConfirmar e gravar na planilha?';
+    if (!confirm(msg)) { res.textContent = 'Cancelado. Nada foi alterado.'; return; }
+    res.textContent = '⏳ Gravando…';
+    jsonp(API + '?acao=organizarSeries&confirmar=sim', function(err2, data2) {
+      if (err2 || !data2 || !data2.sucesso) {
+        res.textContent = '❌ Erro: ' + ((data2 && data2.dados && data2.dados.mensagem) || (err2 && err2.message) || 'desconhecido');
+        return;
+      }
+      var r = data2.dados;
+      res.textContent = '✅ ' + r.series + ' séries criadas (de ' + r.primeiraSerie + ' a ' + r.ultimaSerie + ')' + (r.cartelasSemSerie ? '; ' + r.cartelasSemSerie + ' cartela(s) sem série.' : '.');
+      toast('✅ Cartelas organizadas em séries!');
+    });
   });
 }
 

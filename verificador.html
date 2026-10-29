@@ -151,7 +151,7 @@
   <div>
     <h1>🎱 Verificador de Cartelas</h1>
     <div class="sub">Bingo — Quermesse Paróquia Sagrado Coração de Jesus · Marília-SP</div>
-    <div class="sub" id="verInfo" style="opacity:.5">verificador.html v1.7 · API: verificando…</div>
+    <div class="sub" id="verInfo" style="opacity:.5">verificador.html v1.8 · API: verificando…</div>
   </div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <button class="btn btn-verde" onclick="carregarCartelas()">⬇️ Carregar cartelas</button>
@@ -246,7 +246,7 @@
 ══════════════════════════════════════════════════════ */
 var API    = 'https://script.google.com/macros/s/AKfycbxi282C_QHoo5Xm7bqinACTWwzNh9x32aWikssVJ7REoIH1lnOSucgPHslkhHvf8PSP/exec';
 var LIMITE = 200;   // cartelas por página — ajuste conforme necessário
-var FRONT_VERSION = '1.7'; // versão deste arquivo verificador.html — atualizar a cada mudança
+var FRONT_VERSION = '1.8'; // versão deste arquivo verificador.html — atualizar a cada mudança
 
 /* ── VERSÃO (front-end + API) ── */
 function atualizarVersaoExibida(versaoApi) {
@@ -348,6 +348,8 @@ function buscarPagina(pagina) {
     lote.forEach(function(c) {
       cartelas.push({
         id:              c.id,
+        serie:           c.serie     || null,
+        posicao:         c.posicao   || null,
         nome:            c.comprador || '',
         telefone:        c.telefone  || '',
         grade:           c.grade     || [],
@@ -564,7 +566,7 @@ function renderCartela(c) {
   return '<div class="cartela ' + cls + '">' +
     '<div class="cartela-header">' +
       '<div><div class="cartela-nome">' + (c.nome || 'Sem comprador') + '</div>' +
-      '<div class="cartela-id">#' + c.id + '</div></div>' +
+      '<div class="cartela-id">#' + c.id + (c.serie ? ' · Série ' + c.serie : '') + '</div></div>' +
       '<div class="cartela-badges">' + badges + '</div>' +
     '</div>' +
     '<div class="cartela-grid">' +
@@ -607,7 +609,7 @@ function mostrarProximoAlerta() {
   document.getElementById('modal-titulo').textContent = isCheia ? 'CARTELA CHEIA!' : 'QUINA!';
   document.getElementById('modal-badge').textContent  = isCheia ? 'Cartela Cheia' : 'Quina';
   document.getElementById('modal-badge').className    = 'tipo-badge ' + (isCheia ? 'tipo-cheia' : 'tipo-quina');
-  document.getElementById('modal-info').textContent   = '#' + c.id + (c.nome ? ' — ' + c.nome : '') + (!isCheia && item.padrao ? ' · ' + item.padrao : '') + (alertasFila.length ? '  (+' + alertasFila.length + ' na fila)' : '');
+  document.getElementById('modal-info').textContent   = '#' + c.id + (c.serie ? ' (Série ' + c.serie + ')' : '') + (c.nome ? ' — ' + c.nome : '') + (!isCheia && item.padrao ? ' · ' + item.padrao : '') + (alertasFila.length ? '  (+' + alertasFila.length + ' na fila)' : '');
   document.getElementById('overlay').classList.add('ativo');
   dispararSirene(isCheia ? 'cheia' : 'quina', c.id, item.padrao);
   piscarTitulo(isCheia ? '🏆 CARTELA CHEIA!' : '⭐ QUINA!');

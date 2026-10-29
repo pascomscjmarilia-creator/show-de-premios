@@ -20,22 +20,25 @@
 /* Mude a VERSAO a cada edição. Ela aparece no cadastro, no verificador e no painel
  * ("API: ..."), então dá para conferir se a nova versão foi mesmo publicada.
  * Changelog:
+ *   2.2.0 (2026-10-28) — séries: folha com 4 cartelas (colunas serie/posicao); vender por série,
+ *                        gerar séries em lote, organizar cartelas existentes, listar para impressão.
  *   2.1.1 (2026-10-28) — ação pública "_info": nome da planilha ligada e nº de linhas por aba (sem dados).
  *   2.1.0 (2026-10-28) — token de acesso (assinado) para ações que gravam ou mostram dados
  *                        pessoais. Desligado por padrão: ligue EXIGIR_TOKEN depois de testar.
  *   2.0.1 (2026-10-26) — doGet único: repassa ?action= (login) para o Auth.gs.
  *   2.0.0 (2026-10-26) — script único na planilha nova: cartelas, patrocinadores e vídeos. */
-var VERSAO = '2.1.1 (28/10/2026)';
+var VERSAO = '2.2.0 (28/10/2026)';
 
 /* ── Proteção de acesso ───────────────────────────────────────────────
  * false = tudo aberto como antes (modo de transição).
  * true  = as ações em PROTEGIDAS só respondem com um token válido, obtido no login.
  * O token é assinado com um segredo guardado nas "Propriedades do script" (criado sozinho). */
-var EXIGIR_TOKEN = false;
+var EXIGIR_TOKEN = true;
 var PROTEGIDAS = {
   listarCartelas: 1, buscarCartela: 1, atualizarCartela: 1, cadastrarCartela: 1,
   cadastrarCartelasEmLote: 1, marcarSorteada: 1, resetarSorteios: 1,
-  adicionarVideo: 1, removerVideo: 1
+  adicionarVideo: 1, removerVideo: 1,
+  buscarSerie: 1, atualizarSerie: 1, cadastrarSeriesEmLote: 1, organizarSeries: 1, listarSeries: 1
 };
 var TOKEN_HORAS_ADMIN = 12; /* administradores não têm prazo de acesso: o token vale 12 h */
 var ABA_CARTELAS = 'Cartelas';
@@ -62,6 +65,11 @@ function doGet(e) {
       case 'atualizarCartela':        out = ok(atualizarCartela_(p)); break;
       case 'cadastrarCartela':        out = ok(cadastrarCartela_(p)); break;
       case 'cadastrarCartelasEmLote': out = ok(cadastrarLote_(p.quantidade)); break;
+      case 'buscarSerie':             out = ok(buscarSerie_(p.serie)); break;
+      case 'atualizarSerie':          out = ok(atualizarSerie_(p)); break;
+      case 'cadastrarSeriesEmLote':   out = ok(cadastrarSeriesLote_(p.quantidade)); break;
+      case 'organizarSeries':         out = ok(organizarSeries_(p)); break;
+      case 'listarSeries':            out = ok(listarSeries_(p)); break;
       case 'marcarSorteada':          out = ok(marcarSorteada_(p.id)); break;
       case 'resetarSorteios':         out = ok(resetarSorteios_()); break;
       case '_info':                   out = ok(info_()); break;
@@ -193,7 +201,9 @@ function cartelaDeLinha_(d, l) {
     dataVenda: dataTxt_(l[c.data_venda]),
     numeros: json_(l[c.numeros_json], []),
     grade: json_(l[c.grade_json], []),
-    sorteada: bool_(l[c.sorteada])
+    sorteada: bool_(l[c.sorteada]),
+    serie: c.serie === undefined ? null : (Number(l[c.serie]) || null),
+    posicao: c.posicao === undefined ? null : (Number(l[c.posicao]) || null)
   };
 }
 
@@ -234,11 +244,7 @@ function buscarCartela_(id) {
 function atualizarCartela_(p) {
   return comLock_(function () {
     var r = achar_(p.id);
-    var c = r.d.colunas;
-    r.sh.getRange(r.linha, c.comprador_nome + 1).setValue(p.nome || '');
-    r.sh.getRange(r.linha, c.comprador_telefone + 1).setNumberFormat('@').setValue(p.telefone || '');
-    r.sh.getRange(r.linha, c.paga + 1).setValue(String(p.paga) === 'true');
-    r.sh.getRange(r.linha, c.data_venda + 1).setNumberFormat('@').setValue(p.dataVenda || '');
+    gravarVenda_(r.sh, r.linha, r.d.colunas, p);
     return { id: Number(p.id) };
   });
 }
@@ -274,7 +280,7 @@ function proximoId_(d) {
   return max + 1;
 }
 
-function linhaNova_(d, id, numeros, grade) {
+function linhaNova_(d, id, numeros, grade, serie, posicao) {
   var linha = new Array(Object.keys(d.colunas).length);
   for (var i = 0; i < linha.length; i++) linha[i] = '';
   var c = d.colunas;
@@ -284,6 +290,8 @@ function linhaNova_(d, id, numeros, grade) {
   linha[c.grade_json] = JSON.stringify(grade);
   linha[c.data_cadastro] = new Date().toISOString();
   linha[c.sorteada] = false;
+  if (serie && c.serie !== undefined) linha[c.serie] = serie;
+  if (posicao && c.posicao !== undefined) linha[c.posicao] = posicao;
   return linha;
 }
 
@@ -349,6 +357,158 @@ function cadastrarLote_(quantidade) {
     sh.getRange(sh.getLastRow() + 1, 1, linhas.length, linhas[0].length).setValues(linhas);
     return { total: linhas.length, primeiroId: primeiro, ultimoId: id - 1 };
   });
+}
+
+/* ───────────── séries (uma folha impressa = 4 cartelas) ─────────────
+ * Colunas "serie" e "posicao" (1 a 4) na aba Cartelas. Cada cartela mantém o próprio número.
+ * A venda é feita pela série inteira; quina e cartela cheia continuam por cartela. */
+var CARTELAS_POR_SERIE = 4;
+
+/* Grava nome, telefone, pagamento e data da venda numa linha da aba Cartelas. */
+function gravarVenda_(sh, linha, c, p) {
+  sh.getRange(linha, c.comprador_nome + 1).setValue(p.nome || '');
+  sh.getRange(linha, c.comprador_telefone + 1).setNumberFormat('@').setValue(p.telefone || '');
+  sh.getRange(linha, c.paga + 1).setValue(String(p.paga) === 'true');
+  sh.getRange(linha, c.data_venda + 1).setNumberFormat('@').setValue(p.dataVenda || '');
+}
+
+/* Cria as colunas serie e posicao no fim do cabeçalho, se ainda não existirem. */
+function garantirColunasSerie_(sh) {
+  var d = ler_(sh), col = sh.getLastColumn();
+  ['serie', 'posicao'].forEach(function (nome) {
+    if (!(nome in d.colunas)) { col++; sh.getRange(1, col).setValue(nome); }
+  });
+}
+
+function exigirSerie_(d) {
+  if (!('serie' in d.colunas) || !('posicao' in d.colunas)) {
+    throw new Error('A aba Cartelas ainda não tem séries. Use "Organizar em séries" no Cadastro.');
+  }
+}
+
+/* Cartelas de uma série, em ordem de posição. */
+function buscarSerie_(serie) {
+  var n = Number(serie);
+  if (!n) throw new Error('Informe o número da série.');
+  var d = ler_(aba_(ABA_CARTELAS));
+  exigirSerie_(d);
+  var cs = d.colunas.serie;
+  var cartelas = d.linhas
+    .filter(function (l) { return Number(l[cs]) === n; })
+    .map(function (l) { return cartelaDeLinha_(d, l); })
+    .sort(function (a, b) { return a.posicao - b.posicao; });
+  if (!cartelas.length) throw new Error('Série ' + n + ' não encontrada.');
+  var vendidas = cartelas.filter(function (c) { return c.comprador; }).length;
+  return { serie: n, cartelas: cartelas, vendidas: vendidas, completa: cartelas.length === CARTELAS_POR_SERIE };
+}
+
+/* Vende (ou atualiza) a série inteira: os dados valem para todas as cartelas dela. */
+function atualizarSerie_(p) {
+  var n = Number(p.serie);
+  if (!n) throw new Error('Informe o número da série.');
+  return comLock_(function () {
+    var sh = aba_(ABA_CARTELAS);
+    var d = ler_(sh);
+    exigirSerie_(d);
+    var cs = d.colunas.serie, ic = d.colunas.id_cartela, ids = [];
+    d.linhas.forEach(function (l, i) {
+      if (Number(l[cs]) === n) { gravarVenda_(sh, i + 2, d.colunas, p); ids.push(Number(l[ic])); }
+    });
+    if (!ids.length) throw new Error('Série ' + n + ' não encontrada.');
+    return { serie: n, cartelas: ids };
+  });
+}
+
+/* Dá série às cartelas que ainda não têm, em blocos de 4 por ordem de número.
+ * Sem "confirmar=sim" só simula (não grava nada). Sobras (menos de 4) ficam sem série. */
+function organizarSeries_(p) {
+  return comLock_(function () {
+    var sh = aba_(ABA_CARTELAS);
+    var confirmar = String(p.confirmar) === 'sim';
+    if (confirmar) garantirColunasSerie_(sh);
+    var d = ler_(sh);
+    var ic = col_(d, 'id_cartela');
+    var temColunas = ('serie' in d.colunas) && ('posicao' in d.colunas);
+    var maxSerie = 0, livres = [];
+    d.linhas.forEach(function (l, i) {
+      if (l[ic] === '') return;
+      var s = temColunas ? Number(l[d.colunas.serie]) || 0 : 0;
+      if (s > maxSerie) maxSerie = s;
+      if (!s) livres.push({ i: i, id: Number(l[ic]) });
+    });
+    livres.sort(function (a, b) { return a.id - b.id; });
+    var blocos = Math.floor(livres.length / CARTELAS_POR_SERIE);
+    var resumo = {
+      simulacao: !confirmar, series: blocos, primeiraSerie: maxSerie + 1,
+      ultimaSerie: maxSerie + blocos, cartelasSemSerie: livres.length - blocos * CARTELAS_POR_SERIE
+    };
+    if (!confirmar || !blocos) return resumo;
+
+    var n = d.linhas.length, cs = d.colunas.serie, cp = d.colunas.posicao;
+    var serieCol = [], posCol = [];
+    for (var i = 0; i < n; i++) { serieCol.push([d.linhas[i][cs]]); posCol.push([d.linhas[i][cp]]); }
+    for (var b = 0; b < blocos; b++) {
+      for (var k = 0; k < CARTELAS_POR_SERIE; k++) {
+        var x = livres[b * CARTELAS_POR_SERIE + k];
+        serieCol[x.i] = [maxSerie + 1 + b];
+        posCol[x.i] = [k + 1];
+      }
+    }
+    sh.getRange(2, cs + 1, n, 1).setValues(serieCol);
+    sh.getRange(2, cp + 1, n, 1).setValues(posCol);
+    return resumo;
+  });
+}
+
+/* Gera "quantidade" séries novas (4 cartelas cada, sem repetir números). */
+function cadastrarSeriesLote_(quantidade) {
+  var qtd = parseInt(quantidade, 10);
+  if (!qtd || qtd < 1 || qtd > 5000) throw new Error('Quantidade inválida (1 a 5000 séries).');
+  return comLock_(function () {
+    var sh = aba_(ABA_CARTELAS);
+    garantirColunasSerie_(sh);
+    var d = ler_(sh);
+    var usadas = {}, maxSerie = 0;
+    d.linhas.forEach(function (l) {
+      usadas[String(l[d.colunas.numeros_json])] = true;
+      var s = Number(l[d.colunas.serie]) || 0;
+      if (s > maxSerie) maxSerie = s;
+    });
+    var primeiroId = proximoId_(d), id = primeiroId, linhas = [], tentativas = 0;
+    for (var s = 1; s <= qtd; s++) {
+      for (var pos = 1; pos <= CARTELAS_POR_SERIE; pos++) {
+        var c;
+        do {
+          if (++tentativas > qtd * CARTELAS_POR_SERIE * 20) throw new Error('Não foi possível gerar cartelas únicas.');
+          c = gerarCartela_();
+        } while (usadas[JSON.stringify(c.numeros)]);
+        usadas[JSON.stringify(c.numeros)] = true;
+        linhas.push(linhaNova_(d, id++, c.numeros, c.grade, maxSerie + s, pos));
+      }
+    }
+    sh.getRange(sh.getLastRow() + 1, 1, linhas.length, linhas[0].length).setValues(linhas);
+    return {
+      totalSeries: qtd, totalCartelas: linhas.length,
+      primeiraSerie: maxSerie + 1, ultimaSerie: maxSerie + qtd, primeiroId: primeiroId, ultimoId: id - 1
+    };
+  });
+}
+
+/* Séries com a grade de cada cartela (para imprimir as folhas). de/ate = intervalo de séries. */
+function listarSeries_(p) {
+  var d = ler_(aba_(ABA_CARTELAS));
+  exigirSerie_(d);
+  var de = Number(p.de) || 1, ate = Number(p.ate) || 1e9, mapa = {};
+  d.linhas.forEach(function (l) {
+    var s = Number(l[d.colunas.serie]) || 0;
+    if (!s || s < de || s > ate) return;
+    var c = cartelaDeLinha_(d, l);
+    (mapa[s] = mapa[s] || []).push({ id: c.id, posicao: c.posicao, grade: c.grade, comprador: c.comprador });
+  });
+  var series = Object.keys(mapa).map(Number).sort(function (a, b) { return a - b; }).map(function (s) {
+    return { serie: s, cartelas: mapa[s].sort(function (a, b) { return a.posicao - b.posicao; }) };
+  });
+  return { total: series.length, series: series };
 }
 
 /* ───────────── patrocinadores ───────────── */

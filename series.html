@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Folhas de Série — Show de Prêmios</title>
+<!-- series.html — Versão 1.0
+     Gera as folhas de série (4 cartelas por folha A4) a partir da planilha, para imprimir ou salvar em PDF.
+     Pede login (CPF e senha pessoal). -->
+<script src="acesso.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #e9efe2; color: #1f2a1f; }
+
+  /* ── barra de controle (não sai na impressão) ── */
+  .barra { position: sticky; top: 0; z-index: 5; background: #0A3D1A; color: #fff; padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .barra h1 { font-size: 16px; margin: 0 14px 0 0; color: #A8E063; }
+  .barra label { font-size: 13px; display: flex; gap: 6px; align-items: center; }
+  .barra input { width: 80px; padding: 6px; border-radius: 6px; border: 0; font-size: 14px; }
+  .barra button { padding: 8px 14px; border: 0; border-radius: 8px; font-weight: 600; cursor: pointer; background: #A8E063; color: #0A3D1A; }
+  .barra button.sec { background: #1A6B30; color: #fff; }
+  .barra a { color: #cfe8b6; font-size: 13px; margin-left: auto; text-decoration: none; }
+  #status { font-size: 13px; color: #e8f5d8; }
+  .aviso { max-width: 760px; margin: 18px auto; background: #fff; border-left: 5px solid #1A6B30; padding: 12px 16px; border-radius: 0 8px 8px 0; font-size: 14px; }
+
+  /* ── folhas ── */
+  #folhas { padding: 14px 0 40px; }
+  .folha { width: 210mm; height: 297mm; margin: 0 auto 14px; background: #fff; padding: 8mm; box-shadow: 0 2px 10px rgba(0,0,0,.25); display: flex; flex-direction: column; page-break-after: always; break-after: page; }
+  .folha-topo { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 3px solid #0A3D1A; padding-bottom: 2mm; margin-bottom: 3mm; }
+  .folha-topo .serie { font-size: 24pt; font-weight: 800; color: #0A3D1A; }
+  .folha-topo .evento { font-size: 9pt; color: #444; text-align: right; }
+  .grade-folha { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 0; }
+  .cartela { border: 1.2px dashed #777; padding: 4mm; display: flex; flex-direction: column; }
+  .cartela-cab { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2mm; }
+  .cartela-cab .num { font-size: 15pt; font-weight: 800; }
+  .cartela-cab .pos { font-size: 8.5pt; color: #555; }
+  .tab { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: auto repeat(5, 1fr); gap: 1mm; }
+  .tab .h { text-align: center; color: #fff; font-weight: 800; font-size: 15pt; border-radius: 2mm; padding: 0.6mm 0; }
+  .tab .c { display: flex; align-items: center; justify-content: center; border: 1px solid #999; border-radius: 1.5mm; font-size: 17pt; font-weight: 700; }
+  .tab .c.free { background: #f1f1f1; font-size: 10pt; color: #555; }
+  .h0 { background: #b91c1c; } .h1 { background: #1d4ed8; } .h2 { background: #15803d; } .h3 { background: #b45309; } .h4 { background: #7e22ce; }
+  .folha-rodape { font-size: 8pt; color: #666; text-align: center; margin-top: 2mm; }
+
+  @page { size: A4; margin: 0; }
+  @media print {
+    body { background: #fff; }
+    .barra, .aviso { display: none !important; }
+    #folhas { padding: 0; }
+    .folha { margin: 0; box-shadow: none; height: 296mm; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<div class="barra">
+  <h1>📄 Folhas de Série</h1>
+  <label>Da série <input type="number" id="de" min="1" value="1"></label>
+  <label>até <input type="number" id="ate" min="1" placeholder="todas"></label>
+  <button onclick="carregar()">Carregar</button>
+  <button class="sec" onclick="window.print()">🖨️ Imprimir / Salvar em PDF</button>
+  <span id="status"></span>
+  <a href="index.html">🏠 Voltar</a>
+</div>
+
+<div class="aviso" id="aviso">
+  Escolha o intervalo de séries e clique em <b>Carregar</b>. Cada folha A4 traz uma série com as 4 cartelas, já com o número da série e de cada cartela.
+  Para imprimir, clique em <b>Imprimir / Salvar em PDF</b>; no destino, escolha a impressora ou <b>Salvar como PDF</b>, tamanho <b>A4</b>, margens <b>Nenhuma</b>, e marque <b>Elementos gráficos de segundo plano</b>.
+  Recorte nas linhas tracejadas.
+</div>
+
+<div id="folhas"></div>
+
+<script>
+var API = Acesso.authUrl;
+var LETRAS = ['B', 'I', 'N', 'G', 'O'];
+
+function jsonp(url, cb) {
+  var id  = '_cb' + Date.now() + (Math.random() * 9999 | 0);
+  var tag = document.createElement('script');
+  window[id] = function(data) {
+    try { delete window[id]; } catch(e) { window[id] = void 0; }
+    tag.parentNode && tag.parentNode.removeChild(tag);
+    if (Acesso.negado(data)) { Acesso.pedirLogin(function() { jsonp(url, cb); }); return; }
+    cb(null, data);
+  };
+  tag.onerror = function() {
+    try { delete window[id]; } catch(e) { window[id] = void 0; }
+    tag.parentNode && tag.parentNode.removeChild(tag);
+    cb(new Error('Erro de rede'));
+  };
+  tag.src = Acesso.comToken(url) + '&callback=' + id + '&_=' + Date.now();
+  document.head.appendChild(tag);
+}
+
+function esc(t) { return String(t).replace(/[&<>"]/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+function htmlCartela(c, serie) {
+  var g = c.grade || [], celulas = '';
+  for (var r = 0; r < 5; r++)
+    for (var col = 0; col < 5; col++) {
+      var v = g[r] ? g[r][col] : null;
+      celulas += (v === null || v === undefined)
+        ? '<div class="c free">LIVRE</div>'
+        : '<div class="c">' + esc(v) + '</div>';
+    }
+  var cab = LETRAS.map(function(l, i) { return '<div class="h h' + i + '">' + l + '</div>'; }).join('');
+  return '<div class="cartela">' +
+    '<div class="cartela-cab"><span class="num">Cartela nº ' + esc(c.id) + '</span>' +
+    '<span class="pos">Série ' + esc(serie) + ' · ' + esc(c.posicao) + '/4</span></div>' +
+    '<div class="tab">' + cab + celulas + '</div></div>';
+}
+
+function htmlFolha(s) {
+  var vazias = '';
+  for (var i = s.cartelas.length; i < 4; i++) vazias += '<div class="cartela"></div>';
+  return '<div class="folha">' +
+    '<div class="folha-topo"><span class="serie">SÉRIE ' + esc(s.serie) + '</span>' +
+    '<span class="evento">Show de Prêmios<br>Paróquia Sagrado Coração de Jesus · Marília-SP</span></div>' +
+    '<div class="grade-folha">' + s.cartelas.map(function(c) { return htmlCartela(c, s.serie); }).join('') + vazias + '</div>' +
+    '<div class="folha-rodape">Série ' + esc(s.serie) + ' · cartelas ' + s.cartelas.map(function(c) { return esc(c.id); }).join(', ') + '</div>' +
+  '</div>';
+}
+
+function carregar() {
+  var de  = parseInt(document.getElementById('de').value, 10) || 1;
+  var ate = parseInt(document.getElementById('ate').value, 10) || '';
+  document.getElementById('status').textContent = 'Carregando…';
+  document.getElementById('folhas').innerHTML = '';
+  jsonp(API + '?acao=listarSeries&de=' + de + (ate ? '&ate=' + ate : ''), function(err, data) {
+    var st = document.getElementById('status');
+    if (err || !data || !data.sucesso) {
+      st.textContent = '❌ ' + ((data && data.dados && data.dados.mensagem) || (err && err.message) || 'Erro ao carregar.');
+      return;
+    }
+    var series = data.dados.series || [];
+    if (!series.length) { st.textContent = 'Nenhuma série nesse intervalo. Use "Organizar em séries" no Cadastro.'; return; }
+    document.getElementById('folhas').innerHTML = series.map(htmlFolha).join('');
+    document.getElementById('aviso').style.display = 'none';
+    st.textContent = '✅ ' + series.length + ' folha(s): série ' + series[0].serie + ' a ' + series[series.length - 1].serie;
+  });
+}
+
+Acesso.exigirLogin();
+</script>
+</body>
+</html>
