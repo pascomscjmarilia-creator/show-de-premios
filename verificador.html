@@ -162,7 +162,7 @@
   <div>
     <h1>🎱 Verificador de Cartelas</h1>
     <div class="sub">Show de Prêmios — Quermesse Paróquia Sagrado Coração de Jesus · Marília-SP</div>
-    <div class="sub" id="verInfo" style="opacity:.5">verificador.html v1.11 · API: verificando…</div>
+    <div class="sub" id="verInfo" style="opacity:.5">verificador.html v1.12 · API: verificando…</div>
   </div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <button class="btn btn-verde" onclick="carregarCartelas()">⬇️ Carregar cartelas</button>
@@ -277,7 +277,7 @@ var termoBusca  = '';
 var itemAtual   = null;  // alerta em exibição (para registrar o ganhador ao confirmar)
 var registrados = 0;
 var LIMITE = 200;   // cartelas por página — ajuste conforme necessário
-var FRONT_VERSION = '1.11'; // versão deste arquivo verificador.html — atualizar a cada mudança
+var FRONT_VERSION = '1.12'; // versão deste arquivo verificador.html — atualizar a cada mudança
 
 /* ── VERSÃO (front-end + API) ── */
 function atualizarVersaoExibida(versaoApi) {
@@ -475,9 +475,8 @@ function ajustarRodadaSemSeries() {
   }
 }
 
-/* Registro do ganhador na planilha (aba Ganhadores) ao confirmar o alerta */
-function registrarGanhadorAtual() {
-  var it = itemAtual; itemAtual = null;
+/* Registro do ganhador na planilha (aba Ganhadores) assim que o alerta aparece */
+function registrarGanhadorItem(it) {
   if (!it || !it.cartela) return;
   var c = it.cartela;
   var st = document.getElementById('reg-status');
@@ -704,6 +703,7 @@ function mostrarProximoAlerta() {
   alertandoAgora = true;
   var item = alertasFila.shift(), isCheia = item.tipo === 'cheia', c = item.cartela;
   itemAtual = item;
+  registrarGanhadorItem(item); /* grava assim que o alerta aparece: não depende de fechar o aviso */
   document.getElementById('modal-emoji').textContent  = isCheia ? '🏆' : '⭐';
   document.getElementById('modal-titulo').textContent = isCheia ? 'CARTELA CHEIA!' : 'QUINA!';
   document.getElementById('modal-badge').textContent  = (isCheia ? 'Cartela Cheia' : 'Quina') + (item.rodada ? ' · ' + item.rodada + 'ª rodada' : '');
@@ -790,7 +790,7 @@ function reavaliarModalidades() {
 }
 
 function fecharModal() {
-  registrarGanhadorAtual();
+  itemAtual = null;
   document.getElementById('overlay').classList.remove('ativo');
   if (!alertasFila.length) pararTitulo();
   setTimeout(mostrarProximoAlerta, 300);

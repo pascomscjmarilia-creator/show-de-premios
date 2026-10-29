@@ -35,6 +35,7 @@
   .tag { font-size:12px; padding:2px 9px; border-radius:7px; white-space:nowrap; font-weight:600; }
   .t-quina { background:#fdf0d3; color:#7a5200; } .t-cheia { background:#ffe3cc; color:#8a3b00; } .t-sorteio { background:#e0e9fb; color:#1c3f8f; }
   .mudo { color:#9aa; }
+  .dest { font-weight:800; font-size:15px; color:var(--verde-escuro); }
   #msg { margin:10px 0; font-size:13px; min-height:18px; color:var(--mudo); }
   #msg.erro { color:#a32d2d; }
 
@@ -47,6 +48,11 @@
   #apres .lista { flex:1; overflow:hidden; padding:0 3vw 3vh; display:grid; gap:1.6vh 1.6vw; grid-template-columns:repeat(auto-fill,minmax(min(100%,26vw),1fr)); align-content:start; }
   .gcard { background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); border-radius:16px; padding:1.8vh 1.6vw; }
   .gcard .tipo { font-size:clamp(12px,1.9vh,22px); font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#fde68a; }
+  .pills { display:flex; gap:.8vw; flex-wrap:wrap; margin:.9vh 0 .3vh; }
+  .pill { background:#fde68a; color:#422006; border-radius:12px; padding:.5vh .9vw; font-weight:800; font-size:clamp(16px,3vh,40px); line-height:1.15; white-space:nowrap; }
+  .pill small { display:block; font-size:.45em; font-weight:700; letter-spacing:.08em; text-transform:uppercase; opacity:.7; }
+  .pill.cart { background:#fff; flex:1 1 100%; white-space:normal; overflow-wrap:anywhere; }
+  .gcard { min-width:0; }
   .gcard .nome { font-size:clamp(20px,3.8vh,52px); font-weight:800; margin:.5vh 0; line-height:1.1; }
   .gcard .det { font-size:clamp(13px,2.2vh,28px); color:#d1fae5; }
   .gcard .premio { margin-top:.6vh; font-size:clamp(14px,2.4vh,30px); color:#fcd34d; font-weight:700; }
@@ -59,7 +65,7 @@
 <header>
   <div>
     <h1>🏆 Ganhadores</h1>
-    <div class="sub" id="verInfo">ganhadores.html v1.0 · API: verificando…</div>
+    <div class="sub" id="verInfo">ganhadores.html v1.1 · API: verificando…</div>
   </div>
   <a href="index.html" title="Voltar para a tela principal">🏠</a>
 </header>
@@ -109,7 +115,7 @@
 <script src="ganhadores-lib.js"></script>
 <script>
 var API = Acesso.authUrl;
-var FRONT_VERSION = '1.0'; // versão deste arquivo ganhadores.html — atualizar a cada mudança
+var FRONT_VERSION = '1.1'; // versão deste arquivo ganhadores.html — atualizar a cada mudança
 var todos = [];
 var filtro = 'todos';
 var timerApres = null;
@@ -171,9 +177,9 @@ function desenhar() {
     return '<tr><td>' + esc(g.dataHora) + '</td>'
       + '<td><span class="tag t-' + esc(Ganhadores.classe(g.fase)) + '">' + esc(Ganhadores.rotuloFase(g.fase)) + '</span>'
       + (g.padrao ? '<div class="mudo">' + esc(g.padrao) + '</div>' : '') + '</td>'
-      + '<td>' + (g.rodada ? g.rodada + 'ª' : '<span class="mudo">—</span>') + '</td>'
-      + '<td>' + (g.serie || '<span class="mudo">—</span>') + '</td>'
-      + '<td>' + esc(g.cartela) + '</td>'
+      + '<td class="dest">' + (g.rodada ? g.rodada + 'ª' : '<span class="mudo">—</span>') + '</td>'
+      + '<td class="dest">' + (g.serie || '<span class="mudo">—</span>') + '</td>'
+      + '<td class="dest">' + esc(g.cartela) + '</td>'
       + '<td><b>' + esc(g.comprador || 'Sem comprador lançado') + '</b></td>'
       + '<td>' + esc(g.telefone) + '</td>'
       + '<td>' + esc(g.premio) + '</td></tr>';
@@ -186,10 +192,12 @@ function desenharApresentacao() {
   var lista = visiveis();
   $('apresTitulo').textContent = '🏆 ' + Ganhadores.tituloApresentacao(filtro, Number($('fRodada').value) || 0);
   $('apresLista').innerHTML = lista.length ? lista.map(function(g) {
-    return '<div class="gcard"><div class="tipo">' + esc(Ganhadores.rotuloFase(g.fase))
-      + (g.rodada ? ' · ' + g.rodada + 'ª rodada' : '') + '</div>'
-      + '<div class="nome">' + esc(g.comprador || 'Série ' + g.serie) + '</div>'
-      + '<div class="det">' + (g.serie ? 'Série ' + esc(g.serie) + ' · ' : '') + 'Cartela ' + esc(g.cartela) + (g.padrao ? ' · ' + esc(g.padrao) : '') + '</div>'
+    var pills = (g.rodada ? '<div class="pill"><small>Rodada</small>' + esc(g.rodada) + 'ª</div>' : '')
+      + (g.serie ? '<div class="pill"><small>Série</small>' + esc(g.serie) + '</div>' : '')
+      + (g.cartela ? '<div class="pill cart"><small>Cartela</small>' + esc(g.cartela) + '</div>' : '');
+    return '<div class="gcard"><div class="tipo">' + esc(Ganhadores.rotuloFase(g.fase)) + (g.padrao ? ' · ' + esc(g.padrao) : '') + '</div>'
+      + '<div class="pills">' + pills + '</div>'
+      + '<div class="nome">' + esc(g.comprador || 'Sem comprador lançado') + '</div>'
       + (g.premio ? '<div class="premio">🎁 ' + esc(g.premio) + '</div>' : '') + '</div>';
   }).join('') : '<div class="vazio">Nenhum ganhador registrado ainda.</div>';
 }
