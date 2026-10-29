@@ -84,6 +84,15 @@
   .ganh-pill.cart { background: #fff; flex: 1 1 100%; overflow-wrap: anywhere; font-size: 3.6vh; }
   .ganh-nome { font-size: 4.6vh; font-weight: 800; line-height: 1.1; overflow-wrap: anywhere; }
   .ganh-premio { font-size: 3vh; color: #fcd34d; font-weight: 700; }
+  /* ── Prêmio em disputa (foto grande) ── */
+  .premio-overlay { display: none; position: fixed; inset: 0; z-index: 190; background: #000; animation: fadeIn .5s ease both; }
+  .premio-overlay.show { display: block; }
+  .premio-foto { position: absolute; inset: 0; background: #000 center/contain no-repeat; }
+  .premio-legenda { position: absolute; left: 0; right: 0; bottom: 0; padding: 4vh 4vw 4.5vh; text-align: center;
+    background: linear-gradient(to top, rgba(0,0,0,.92), rgba(0,0,0,.55) 70%, rgba(0,0,0,0)); }
+  .premio-rotulo { font-size: 2.6vh; color: #fbbf24; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+  .premio-nome { font-size: 8vh; font-weight: 900; color: #fff; line-height: 1.05; text-shadow: 0 .3vh 1.2vh rgba(0,0,0,.8); overflow-wrap: anywhere; }
+  .premio-desc { font-size: 3.4vh; color: #e5e7eb; margin-top: 1vh; overflow-wrap: anywhere; }
   .cartela-label  { font-size: 2.8vh; color: #fbbf24; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
   .cartela-numero { font-size: 18vh; font-weight: 900; line-height: 1; color: #fbbf24;
     text-shadow: 0 0 6vh rgba(255,196,0,.4), 0 .08em 0 rgba(0,0,0,.6);
@@ -256,6 +265,7 @@
   /* ── Overlay sorteio de cartela ── */
   function mostrarCartela(cartela, duracaoMs) {
     ocultarGanhadores();
+    ocultarPremio();
     clearTimeout(cartelaTimer);
     document.getElementById('cartelaLabel').textContent  = cartela.rotulo || '🎉 Cartela Sorteada!';
     document.getElementById('cartelaNumero').textContent = cartela.id;
@@ -276,6 +286,7 @@
 
   function ocultarCartela() {
     ocultarGanhadores();
+    ocultarPremio();
     clearTimeout(cartelaTimer);
     document.getElementById('cartelaOverlay').classList.remove('show');
   }
@@ -315,6 +326,30 @@
   function ocultarGanhadores() {
     clearInterval(ganhTimer);
     var o = document.getElementById('ganhOverlay'); if (o) o.classList.remove('show');
+  }
+
+  /* ── Prêmio em disputa: nome na hora, foto buscada no banco (uma vez por prêmio) ── */
+  var premioFotos = {}, premioAtualId = null;
+  function mostrarPremio(p) {
+    if (!p || !p.id) return;
+    premioAtualId = p.id;
+    document.getElementById('premioNome').textContent = p.nome || '';
+    document.getElementById('premioDesc').textContent = p.descricao || '';
+    var foto = document.getElementById('premioFoto');
+    function pintar(img) { if (premioAtualId === p.id) foto.style.backgroundImage = img ? 'url(' + img + ')' : ''; }
+    pintar(premioFotos[p.id] || '');
+    document.getElementById('premioOverlay').classList.add('show');
+    if (premioFotos[p.id]) return;
+    try {
+      firebase.database().ref('bingo/premiosImg/' + p.id).once('value').then(function(snap) {
+        var v = snap.val();
+        if (typeof v === 'string' && v.indexOf('data:image/jpeg;base64,') === 0) { premioFotos[p.id] = v; pintar(v); }
+      });
+    } catch (e) { /* sem Firebase: fica só o nome */ }
+  }
+  function ocultarPremio() {
+    premioAtualId = null;
+    var o = document.getElementById('premioOverlay'); if (o) o.classList.remove('show');
   }
 
   /* ── Processa mensagem, venha ela do BroadcastChannel (mesmo
@@ -370,6 +405,8 @@
     }
     if (d.tipo === 'mostrar_ganhadores') { mostrarGanhadores(d.payload); }
     if (d.tipo === 'ocultar_ganhadores') { ocultarGanhadores(); }
+    if (d.tipo === 'mostrar_premio') { ocultarGanhadores(); mostrarPremio(d.payload); }
+    if (d.tipo === 'ocultar_premio') { ocultarPremio(); }
   }
 
   /* ── BroadcastChannel (sincronização instantânea entre abas do
@@ -403,7 +440,7 @@
         _fbUltimoTs = d.ts;
         /* A primeira leitura é só o estado guardado. As pedras valem (a tela abre "atualizada" com o jogo em andamento),
            mas uma troca de tela ou um sorteio de série velhos não são comandos novos. */
-        if (inicial && (d.tipo === 'trocar_tela' || d.tipo === 'sorteio_cartela' || d.tipo === 'ocultar_cartela' || d.tipo === 'mostrar_ganhadores' || d.tipo === 'ocultar_ganhadores')) return;
+        if (inicial && (d.tipo === 'trocar_tela' || d.tipo === 'sorteio_cartela' || d.tipo === 'ocultar_cartela' || d.tipo === 'mostrar_ganhadores' || d.tipo === 'ocultar_ganhadores' || d.tipo === 'mostrar_premio' || d.tipo === 'ocultar_premio')) return;
         processarMensagem(d);
       });
     });
@@ -451,6 +488,14 @@
   buildBoard();
   carregarPatrocinadoresDatashow(); // ← busca patrocinadores e exibe Coringa ao abrir
 </script>
+<div class="premio-overlay" id="premioOverlay">
+  <div class="premio-foto" id="premioFoto"></div>
+  <div class="premio-legenda">
+    <div class="premio-rotulo">🎁 Prêmio em disputa</div>
+    <div class="premio-nome" id="premioNome"></div>
+    <div class="premio-desc" id="premioDesc"></div>
+  </div>
+</div>
 <div class="ganh-overlay" id="ganhOverlay">
   <div class="ganh-topo"><div class="ganh-titulo" id="ganhTitulo">🏆 Ganhadores</div><div class="ganh-pag" id="ganhPag"></div></div>
   <div class="ganh-grade" id="ganhGrade"></div>

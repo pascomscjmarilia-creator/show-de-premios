@@ -11,6 +11,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script src="ganhadores-lib.js"></script>
+<script src="premios-lib.js"></script>
 <script src="acesso.js"></script>
 <style>
 /* ══ RESET ══ */
@@ -426,6 +427,18 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
           </label>
           <div style="font-size:12px;color:#777;margin-top:6px" id="scStatusMsg"></div>
           <div class="field" style="margin-top:10px">
+            <label for="scPremioSel" style="font-size:12px;color:#aaa">Prêmio em disputa (cadastrado em Prêmios, com foto)</label>
+            <select id="scPremioSel" onchange="escolherPremio()" style="width:100%;padding:9px;border-radius:8px;background:#1a1a1a;color:#e5e5e5;border:1px solid #333">
+              <option value="">— nenhum —</option>
+            </select>
+            <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-gold" onclick="mostrarPremioTelao()"><i class="ti ti-gift"></i> Mostrar prêmio no Telão</button>
+              <button class="btn btn-ghost" onclick="ocultarPremioTelao()"><i class="ti ti-eye-off"></i> Ocultar prêmio</button>
+              <a class="btn btn-ghost" href="premios.html" target="_blank" rel="noopener" style="text-decoration:none"><i class="ti ti-camera"></i> Cadastrar prêmios</a>
+            </div>
+            <div class="feedback" id="fbPremio"></div>
+          </div>
+          <div class="field" style="margin-top:10px">
             <label for="scPremio" style="font-size:12px;color:#aaa">Prêmio deste sorteio (opcional — fica registrado com o ganhador)</label>
             <input type="text" id="scPremio" maxlength="80" placeholder="Ex.: Cesta de café, TV 32&quot;…" autocomplete="off">
           </div>
@@ -522,7 +535,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
             <button class="btn btn-ghost" onclick="testarScript()"><i class="ti ti-plug"></i> Testar</button>
           </div>
           <div class="feedback" id="fbScript"></div>
-          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.14 · API: verificando…</div>
+          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.15 · API: verificando…</div>
         </div>
       </div>
 
@@ -882,6 +895,7 @@ try {
   firebase.auth().onAuthStateChanged(function(user){
     if (!user || firebaseRef) return; // já configurado
     firebaseRef = firebase.database().ref('bingo/ultimaMensagem');
+    firebase.database().ref('bingo/premios').on('value', function(snap){ premiosLista = Premios.listar(snap.val()); desenharPremiosSelect(); }, function(){});
     /* Escuta também — necessário pra receber mensagens vindas de telas em
        OUTROS aparelhos, como o Verificador rodando num tablet separado
        (reset ou pedra manual de lá precisam chegar até aqui). */
@@ -1478,6 +1492,37 @@ function sortearCartela(){
   });
 }
 
+/* Prêmio em disputa: escolhido na lista, aparece no telão e vai junto no registro do ganhador */
+var premiosLista = [];
+function desenharPremiosSelect(){
+  const sel = document.getElementById('scPremioSel'); if(!sel) return;
+  const atual = sel.value;
+  sel.innerHTML = '';
+  const o0 = document.createElement('option'); o0.value = ''; o0.textContent = premiosLista.length ? '— nenhum —' : '— nenhum prêmio cadastrado —'; sel.appendChild(o0);
+  premiosLista.forEach(function(p, i){
+    const o = document.createElement('option'); o.value = p.id; o.textContent = (i+1) + '. ' + p.nome; sel.appendChild(o);
+  });
+  if(premiosLista.some(function(p){ return p.id === atual; })) sel.value = atual;
+}
+function premioEscolhido(){
+  const id = document.getElementById('scPremioSel').value;
+  return premiosLista.find(function(p){ return p.id === id; }) || null;
+}
+function escolherPremio(){
+  const p = premioEscolhido();
+  if(p) document.getElementById('scPremio').value = p.nome;
+}
+function mostrarPremioTelao(){
+  const p = premioEscolhido();
+  if(!p){ fb('fbPremio','warn','Escolha um prêmio na lista.'); return; }
+  enviarCanal('mostrar_premio', { id: p.id, nome: p.nome, descricao: p.descricao });
+  fb('fbPremio','ok','"' + p.nome + '" enviado para o telão.');
+}
+function ocultarPremioTelao(){
+  enviarCanal('ocultar_premio', {});
+  fb('fbPremio','ok','Prêmio ocultado do telão.');
+}
+
 /* Ganhadores no telão: busca a lista no servidor e envia (sem telefone) */
 function mostrarGanhadoresTelao(){
   if(!scriptUrl){ fb('fbGanh','err','Configure a URL do Apps Script.'); return; }
@@ -1676,7 +1721,7 @@ async function testarPlanilha(){
    INIT AUTH
 ══════════════════════════════════════════════════════════ */
 /* Versão do arquivo e do Apps Script (a ação desconhecida responde só { versao }) */
-const FRONT_VERSION = '1.14'; /* versão deste painel.html — atualizar a cada mudança */
+const FRONT_VERSION = '1.15'; /* versão deste painel.html — atualizar a cada mudança */
 (function(){
   _scJsonp(SCRIPT_PATROC + '?acao=_ping', function(err, data){
     const el = document.getElementById('verInfo');

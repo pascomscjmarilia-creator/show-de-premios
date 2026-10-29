@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prêmios — Show de Prêmios</title>
+<!-- premios.html — Versão 1.0
+     Cadastro dos prêmios do sorteio: foto (câmera do celular ou galeria), nome e descrição.
+     A foto é reduzida no aparelho e guardada no Firebase (bingo/premios e bingo/premiosImg).
+     Também mostra o prêmio no telão. Pede login. -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="acesso.js"></script>
+<script src="premios-lib.js"></script>
+<style>
+  :root { --verde-escuro:#0A3D1A; --verde-medio:#1A6B30; --verde-claro:#A8E063; --borda:#d5dfc7; --txt:#1f2a1f; --mudo:#667; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Segoe UI',Arial,sans-serif; background:#f3f6ee; color:var(--txt); }
+  header { background:var(--verde-escuro); color:#fff; padding:12px 16px; display:flex; align-items:center; gap:12px; }
+  header h1 { margin:0; font-size:18px; color:var(--verde-claro); }
+  header .sub { font-size:11px; color:rgba(255,255,255,.55); }
+  header a { margin-left:auto; color:#cfe8b6; text-decoration:none; font-size:22px; }
+  main { max-width:760px; margin:0 auto; padding:14px 16px 40px; }
+  .card { background:#fff; border:1px solid var(--borda); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
+  .card h2 { margin:0 0 10px; font-size:16px; color:var(--verde-escuro); }
+  label { display:block; font-size:12px; color:var(--mudo); margin-top:10px; }
+  input[type=text], textarea { width:100%; margin-top:3px; padding:11px 12px; border:1px solid var(--borda); border-radius:8px; font-size:16px; font-family:inherit; }
+  textarea { min-height:70px; resize:vertical; }
+  .btn { border:0; border-radius:10px; padding:12px 16px; font-weight:600; cursor:pointer; font-size:15px; background:var(--verde-medio); color:#fff; }
+  .btn.sec { background:#e5efd9; color:var(--verde-escuro); }
+  .btn.perigo { background:#fbe9e7; color:#a32d2d; }
+  .btn.peq { padding:8px 12px; font-size:13px; }
+  .btn:disabled { opacity:.55; cursor:default; }
+  .linha { display:flex; gap:8px; flex-wrap:wrap; }
+  .foto-area { margin-top:6px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  #preview { width:150px; height:112px; border-radius:10px; border:1px dashed #b9c9a5; background:#f1f6ea center/cover no-repeat; display:flex; align-items:center; justify-content:center; color:#9aa; font-size:12px; text-align:center; }
+  #msg { margin-top:10px; font-size:14px; min-height:20px; }
+  #msg.ok { color:#27500A; } #msg.erro { color:#a32d2d; }
+  .item { display:flex; gap:12px; align-items:center; padding:10px 0; border-top:1px solid #edf1e6; }
+  .item:first-child { border-top:0; }
+  .thumb { width:84px; height:63px; border-radius:8px; background:#eef2e6 center/cover no-repeat; flex:none; display:flex; align-items:center; justify-content:center; color:#aab; font-size:22px; }
+  .item .info { flex:1; min-width:0; }
+  .item .nome { font-weight:700; overflow-wrap:anywhere; }
+  .item .desc { font-size:12.5px; color:var(--mudo); overflow-wrap:anywhere; }
+  .item .acoes { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+  .vazio { color:#9aa; font-size:14px; padding:8px 0; }
+  .on-tv { background:#fff3c4; color:#7a5200; font-size:11px; font-weight:700; border-radius:6px; padding:1px 7px; margin-left:6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🎁 Prêmios</h1>
+    <div class="sub" id="verInfo">premios.html v1.0 · conectando…</div>
+  </div>
+  <a href="index.html" title="Voltar para a tela principal">🏠</a>
+</header>
+
+<main>
+  <div class="card">
+    <h2 id="formTitulo">Novo prêmio</h2>
+    <div class="foto-area">
+      <div id="preview">sem foto</div>
+      <div class="linha">
+        <button class="btn" type="button" onclick="document.getElementById('fCamera').click()">📷 Tirar foto</button>
+        <button class="btn sec" type="button" onclick="document.getElementById('fGaleria').click()">🖼️ Galeria</button>
+      </div>
+    </div>
+    <input type="file" id="fCamera"  accept="image/*" capture="environment" hidden onchange="escolherFoto(this)">
+    <input type="file" id="fGaleria" accept="image/*" hidden onchange="escolherFoto(this)">
+
+    <label for="fNome">Nome do prêmio *</label>
+    <input type="text" id="fNome" maxlength="80" placeholder="Ex.: Cesta de café da manhã" autocomplete="off">
+    <label for="fDesc">Descrição (opcional)</label>
+    <textarea id="fDesc" maxlength="240" placeholder="Ex.: Doada por Padaria Pão Quente"></textarea>
+
+    <div class="linha" style="margin-top:14px">
+      <button class="btn" id="btnSalvar" onclick="salvar()">💾 Salvar prêmio</button>
+      <button class="btn sec" id="btnCancelar" onclick="limparForm()" style="display:none">✕ Cancelar edição</button>
+    </div>
+    <div id="msg"></div>
+  </div>
+
+  <div class="card">
+    <h2>Prêmios cadastrados <span id="contagem" style="color:var(--mudo);font-weight:400"></span></h2>
+    <div id="lista"><div class="vazio">Carregando…</div></div>
+    <div class="linha" style="margin-top:10px">
+      <button class="btn sec peq" onclick="ocultarNoTelao()">👁️‍🗨️ Tirar prêmio do telão</button>
+    </div>
+  </div>
+</main>
+
+<script>
+var FRONT_VERSION = '1.0'; // versão deste arquivo premios.html — atualizar a cada mudança
+var db = null, lista = [], fotoNova = null /* { img, thumb } */, editandoId = null, noTelaoId = null;
+var CANAL = null;
+try { CANAL = new BroadcastChannel('bingo-canal'); } catch (e) {}
+
+function $(id) { return document.getElementById(id); }
+function msg(t, tipo) { $('msg').textContent = t || ''; $('msg').className = tipo || ''; }
+
+/* ── Firebase ── */
+function iniciarBanco() {
+  try {
+    firebase.initializeApp(window.FIREBASE_CONFIG);
+    firebase.auth().signInAnonymously().catch(function (e) { $('verInfo').textContent = 'premios.html v' + FRONT_VERSION + ' · sem conexão com o banco'; });
+    firebase.auth().onAuthStateChanged(function (u) {
+      if (!u || db) return;
+      db = firebase.database();
+      $('verInfo').textContent = 'premios.html v' + FRONT_VERSION + ' · conectado';
+      db.ref('bingo/premios').on('value', function (snap) { lista = Premios.listar(snap.val()); desenharLista(); },
+        function () { $('lista').innerHTML = '<div class="vazio">Sem permissão para ler os prêmios. Publique as regras novas do Firebase.</div>'; });
+    });
+  } catch (e) { $('verInfo').textContent = 'premios.html v' + FRONT_VERSION + ' · banco indisponível'; }
+}
+
+/* ── Foto: reduz no aparelho (câmera de celular gera 3–8 MB) ── */
+function carregarImagem(file) {
+  return new Promise(function (ok, falha) {
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function () { URL.revokeObjectURL(url); ok(img); };
+    img.onerror = function () { URL.revokeObjectURL(url); falha(new Error('Não consegui abrir essa foto.')); };
+    img.src = url;
+  });
+}
+function desenhar(img, lado, qualidade) {
+  var t = Premios.tamanhoAjustado(img.naturalWidth || img.width, img.naturalHeight || img.height, lado);
+  var c = document.createElement('canvas'); c.width = t.w; c.height = t.h;
+  var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, t.w, t.h); g.drawImage(img, 0, 0, t.w, t.h);
+  return c.toDataURL('image/jpeg', qualidade);
+}
+/* tenta qualidades e tamanhos menores até caber no limite do banco */
+function comprimir(img, ladoInicial, limite) {
+  var lado = ladoInicial, q = 0.8, out = desenhar(img, lado, q);
+  while (out.length > limite && (q > 0.45 || lado > 400)) {
+    if (q > 0.45) q = Math.round((q - 0.1) * 100) / 100; else lado = Math.round(lado * 0.8);
+    out = desenhar(img, lado, q);
+  }
+  return out;
+}
+function escolherFoto(input) {
+  var f = input.files && input.files[0]; input.value = '';
+  if (!f) return;
+  msg('Preparando a foto…');
+  carregarImagem(f).then(function (img) {
+    var grande = comprimir(img, 1280, Premios.MAX_IMG), mini = comprimir(img, 200, Premios.MAX_THUMB);
+    if (grande.length > Premios.MAX_IMG) throw new Error('A foto ficou grande demais. Tente outra.');
+    fotoNova = { img: grande, thumb: mini };
+    $('preview').style.backgroundImage = 'url(' + grande + ')'; $('preview').textContent = '';
+    msg('Foto pronta (' + Math.round(grande.length * 0.75 / 1024) + ' KB).', 'ok');
+  }).catch(function (e) { msg(e.message || 'Não foi possível usar essa foto.', 'erro'); });
+}
+
+/* ── Formulário ── */
+function limparForm() {
+  editandoId = null; fotoNova = null;
+  $('fNome').value = ''; $('fDesc').value = '';
+  $('preview').style.backgroundImage = ''; $('preview').textContent = 'sem foto';
+  $('formTitulo').textContent = 'Novo prêmio'; $('btnCancelar').style.display = 'none';
+  msg('');
+}
+function editar(id) {
+  var p = lista.find(function (x) { return x.id === id; }); if (!p) return;
+  editandoId = id; fotoNova = null;
+  $('fNome').value = p.nome; $('fDesc').value = p.descricao;
+  $('preview').style.backgroundImage = p.thumb ? 'url(' + p.thumb + ')' : ''; $('preview').textContent = p.thumb ? '' : 'sem foto';
+  $('formTitulo').textContent = 'Editar prêmio'; $('btnCancelar').style.display = '';
+  msg('Para trocar a foto, tire uma nova. Senão, só salve.');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function salvar() {
+  if (!db) { msg('Sem conexão com o banco. Aguarde e tente de novo.', 'erro'); return; }
+  var t = Premios.validarTextos($('fNome').value, $('fDesc').value);
+  if (!t.ok) { msg(t.erro, 'erro'); return; }
+  var novo = !editandoId, id = editandoId || Premios.novoId();
+  if (novo && !fotoNova) { msg('Tire ou escolha uma foto do prêmio.', 'erro'); return; }
+  $('btnSalvar').disabled = true; msg('Salvando…');
+  var meta = { nome: t.nome, descricao: t.descricao };
+  var passos = Promise.resolve();
+  if (fotoNova) { meta.thumb = fotoNova.thumb; passos = db.ref('bingo/premiosImg/' + id).set(fotoNova.img); }
+  passos.then(function () {
+    if (novo) { meta.ordem = Premios.proximaOrdem(lista); meta.criado = Date.now(); return db.ref('bingo/premios/' + id).set(meta); }
+    return db.ref('bingo/premios/' + id).update(meta);
+  }).then(function () {
+    msg(novo ? 'Prêmio salvo!' : 'Prêmio atualizado!', 'ok'); var m = $('msg').textContent;
+    limparForm(); msg(m, 'ok');
+  }).catch(function (e) {
+    msg('Não foi possível salvar: ' + (e && e.code === 'PERMISSION_DENIED' ? 'o banco recusou (publique as regras novas do Firebase).' : (e && e.message) || 'erro.'), 'erro');
+  }).then(function () { $('btnSalvar').disabled = false; });
+}
+function excluir(id) {
+  var p = lista.find(function (x) { return x.id === id; }); if (!p) return;
+  if (!confirm('Excluir o prêmio "' + p.nome + '" e a foto dele?')) return;
+  Promise.all([db.ref('bingo/premios/' + id).remove(), db.ref('bingo/premiosImg/' + id).remove()])
+    .then(function () { if (editandoId === id) limparForm(); msg('Prêmio excluído.', 'ok'); })
+    .catch(function () { msg('Não foi possível excluir.', 'erro'); });
+}
+function mover(id, dir) {
+  var r = Premios.trocarOrdem(lista, id, dir); if (!r) return;
+  var up = {}; Object.keys(r).forEach(function (k) { up['bingo/premios/' + k + '/ordem'] = r[k]; });
+  db.ref().update(up);
+}
+
+/* ── Telão ── */
+function enviar(tipo, payload) {
+  var m = { tipo: tipo, payload: payload };
+  try { if (CANAL) CANAL.postMessage(m); } catch (e) {}
+  if (db) db.ref('bingo/ultimaMensagem').set({ tipo: tipo, payload: payload, ts: Date.now() });
+}
+function mostrarNoTelao(id) {
+  var p = lista.find(function (x) { return x.id === id; }); if (!p) return;
+  enviar('mostrar_premio', { id: p.id, nome: p.nome, descricao: p.descricao });
+  noTelaoId = id; desenharLista(); msg('"' + p.nome + '" enviado para o telão.', 'ok');
+}
+function ocultarNoTelao() { enviar('ocultar_premio', {}); noTelaoId = null; desenharLista(); msg('Prêmio tirado do telão.', 'ok'); }
+
+/* ── Lista ── */
+function desenharLista() {
+  $('contagem').textContent = lista.length ? '(' + lista.length + ')' : '';
+  if (!lista.length) { $('lista').innerHTML = '<div class="vazio">Nenhum prêmio cadastrado ainda. Tire a primeira foto acima.</div>'; return; }
+  var box = $('lista'); box.innerHTML = '';
+  lista.forEach(function (p, i) {
+    var it = document.createElement('div'); it.className = 'item';
+    var th = document.createElement('div'); th.className = 'thumb';
+    if (p.thumb) th.style.backgroundImage = 'url(' + p.thumb + ')'; else th.textContent = '🎁';
+    var info = document.createElement('div'); info.className = 'info';
+    var nome = document.createElement('div'); nome.className = 'nome'; nome.textContent = (i + 1) + '. ' + p.nome;
+    if (p.id === noTelaoId) { var t = document.createElement('span'); t.className = 'on-tv'; t.textContent = 'NO TELÃO'; nome.appendChild(t); }
+    info.appendChild(nome);
+    if (p.descricao) { var d = document.createElement('div'); d.className = 'desc'; d.textContent = p.descricao; info.appendChild(d); }
+    var ac = document.createElement('div'); ac.className = 'acoes';
+    [['📺 Telão', 'btn peq', function () { mostrarNoTelao(p.id); }],
+     ['✏️', 'btn sec peq', function () { editar(p.id); }],
+     ['▲', 'btn sec peq', function () { mover(p.id, -1); }],
+     ['▼', 'btn sec peq', function () { mover(p.id, 1); }],
+     ['🗑️', 'btn perigo peq', function () { excluir(p.id); }]].forEach(function (b) {
+      var el = document.createElement('button'); el.className = b[1]; el.textContent = b[0]; el.onclick = b[2]; ac.appendChild(el);
+    });
+    info.appendChild(ac);
+    it.appendChild(th); it.appendChild(info); box.appendChild(it);
+  });
+}
+
+Acesso.exigirLogin();
+iniciarBanco();
+</script>
+</body>
+</html>

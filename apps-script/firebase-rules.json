@@ -7,6 +7,26 @@
         ".read": "auth != null",
         ".write": "auth != null",
         ".validate": "newData.hasChildren(['tipo', 'ts']) && newData.child('tipo').isString() && newData.child('tipo').val().length <= 40 && newData.child('ts').isNumber()"
+      },
+      "premios": {
+        ".read": "auth != null",
+        "$id": {
+          ".write": "auth != null",
+          ".validate": "$id.matches(/^[A-Za-z0-9_-]{1,40}$/) && newData.hasChildren(['nome', 'ordem']) && newData.child('nome').isString() && newData.child('nome').val().length >= 1 && newData.child('nome').val().length <= 80 && newData.child('ordem').isNumber()",
+          "nome": {},
+          "ordem": {},
+          "descricao": { ".validate": "newData.isString() && newData.val().length <= 240" },
+          "criado": { ".validate": "newData.isNumber()" },
+          "thumb": { ".validate": "newData.isString() && newData.val().length <= 40000 && newData.val().matches(/^data:image\\/jpeg;base64,/)" },
+          "$outro": { ".validate": false }
+        }
+      },
+      "premiosImg": {
+        "$id": {
+          ".read": "auth != null",
+          ".write": "auth != null",
+          ".validate": "$id.matches(/^[A-Za-z0-9_-]{1,40}$/) && newData.isString() && newData.val().length <= 400000 && newData.val().matches(/^data:image\\/jpeg;base64,/)"
+        }
       }
     }
   }
