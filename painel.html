@@ -496,7 +496,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
             <button class="btn btn-ghost" onclick="testarScript()"><i class="ti ti-plug"></i> Testar</button>
           </div>
           <div class="feedback" id="fbScript"></div>
-          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.11 · API: verificando…</div>
+          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.12 · API: verificando…</div>
         </div>
       </div>
 
@@ -860,8 +860,13 @@ try {
        OUTROS aparelhos, como o Verificador rodando num tablet separado
        (reset ou pedra manual de lá precisam chegar até aqui). */
     let _fbUltimoTsPainel = null;
+    let _fbPrimeira = true;
     firebaseRef.on('value', function(snap){
       var d = snap.val();
+      /* A 1ª leitura é só o estado guardado (última mensagem, talvez um "resetar"
+         ou uma pedra manual antiga): não é comando novo. Sem isso, recarregar o
+         Painel apagava ou repetia as pedras. */
+      if (_fbPrimeira) { _fbPrimeira = false; _fbUltimoTsPainel = d && d.ts; return; }
       if (!d || d.ts === _fbUltimoTsPainel) return;
       _fbUltimoTsPainel = d.ts;
       processarMensagemPainel(d);
@@ -1017,10 +1022,27 @@ document.addEventListener('keydown',e=>{
    INIT
 ══════════════════════════════════════════════════════════ */
 function restaurarRodada(){ var r=parseInt(ls('bingo_rodada'),10); setRodadaUI(r>=1&&r<=4?r:1); }
+/* Guarda as pedras no navegador: se a página recarregar ou fechar no meio do jogo, volta como estava. */
+var LS_JOGO='bingo_jogo_v1', JOGO_VALIDADE=12*3600*1000;
+function salvarJogo(){ try{ localStorage.setItem(LS_JOGO, JSON.stringify({called:[...called], hist:[...hist], fase:fase, rodada:rodada, t:Date.now()})); }catch(e){} }
+function restaurarJogo(){
+  try{
+    var o=JSON.parse(localStorage.getItem(LS_JOGO)||'null');
+    if(!o || !Array.isArray(o.called) || !Array.isArray(o.hist) || Date.now()-o.t>JOGO_VALIDADE) return;
+    if(o.rodada!==rodada) return;
+    var ok=function(n){ return Number.isInteger(n) && n>=1 && n<=75; };
+    if(!o.called.every(ok) || !o.hist.every(ok)) return;
+    called=new Set(o.called); hist=o.hist.slice();
+    paintMiniBoard(); updateHist();
+    if(hist.length) renderBig(hist[0]);
+    if(o.fase===2) setFase(2);
+  }catch(e){}
+}
 function initGame(){
   restaurarRodada();
   buildMiniBoard();
-  renderBig(null);
+  restaurarJogo();
+  if(!called.size) renderBig(null);
   updateStats();
 
   // Carregar config salva
@@ -1267,6 +1289,7 @@ function confirmarRodada(r){
 }
 function setFase(f){
   fase=f;
+  salvarJogo();
   document.getElementById('btnFase1').className='btn '+(f===1?'btn-blue':'btn-ghost');
   document.getElementById('btnFase2').className='btn '+(f===2?'btn-blue':'btn-ghost');
   document.getElementById('faseBadge').innerHTML=f===1?'<i class="ti ti-trophy"></i> Fase 1 — Quina':'<i class="ti ti-crown"></i> Fase 2 — Cartela Cheia';
@@ -1277,6 +1300,7 @@ function setFase(f){
    ESTATÍSTICAS / HISTÓRICO
 ══════════════════════════════════════════════════════════ */
 function updateStats(){
+  salvarJogo();
   document.getElementById('statSorteados').textContent=called.size;
   document.getElementById('statRestam').textContent=75-called.size;
 }
@@ -1586,7 +1610,7 @@ async function testarPlanilha(){
    INIT AUTH
 ══════════════════════════════════════════════════════════ */
 /* Versão do arquivo e do Apps Script (a ação desconhecida responde só { versao }) */
-const FRONT_VERSION = '1.11'; /* versão deste painel.html — atualizar a cada mudança */
+const FRONT_VERSION = '1.12'; /* versão deste painel.html — atualizar a cada mudança */
 (function(){
   _scJsonp(SCRIPT_PATROC + '?acao=_ping', function(err, data){
     const el = document.getElementById('verInfo');
