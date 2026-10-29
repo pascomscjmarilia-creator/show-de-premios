@@ -68,6 +68,22 @@
   }
   .cartela-overlay.show { display: flex; }
   @keyframes fadeIn { from{opacity:0;transform:scale(.94)} to{opacity:1;transform:scale(1)} }
+  /* ── Ganhadores em tela cheia ── */
+  .ganh-overlay { display: none; position: fixed; inset: 0; z-index: 200; flex-direction: column;
+    background: radial-gradient(circle at 50% 0%, #14532d, #052e16 72%); color: #fff; padding: 3vh 3vw; animation: fadeIn .5s ease both; }
+  .ganh-overlay.show { display: flex; }
+  .ganh-topo { display: flex; align-items: baseline; gap: 2vw; }
+  .ganh-titulo { font-size: 6vh; font-weight: 900; color: #fde68a; letter-spacing: .04em; }
+  .ganh-pag { margin-left: auto; font-size: 2.4vh; color: rgba(255,255,255,.55); }
+  .ganh-grade { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr; gap: 2.2vh 1.8vw; margin-top: 2.4vh; min-height: 0; }
+  .ganh-card { background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.2); border-radius: 2vh; padding: 2vh 1.6vw; display: flex; flex-direction: column; justify-content: center; gap: 1.2vh; min-width: 0; }
+  .ganh-tipo { font-size: 2.2vh; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #fde68a; }
+  .ganh-pills { display: flex; gap: .9vw; flex-wrap: wrap; }
+  .ganh-pill { background: #fde68a; color: #422006; border-radius: 1.4vh; padding: .6vh 1vw; font-size: 4.4vh; font-weight: 900; line-height: 1.05; }
+  .ganh-pill small { display: block; font-size: 1.5vh; letter-spacing: .1em; text-transform: uppercase; opacity: .7; }
+  .ganh-pill.cart { background: #fff; flex: 1 1 100%; overflow-wrap: anywhere; font-size: 3.6vh; }
+  .ganh-nome { font-size: 4.6vh; font-weight: 800; line-height: 1.1; overflow-wrap: anywhere; }
+  .ganh-premio { font-size: 3vh; color: #fcd34d; font-weight: 700; }
   .cartela-label  { font-size: 2.8vh; color: #fbbf24; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
   .cartela-numero { font-size: 18vh; font-weight: 900; line-height: 1; color: #fbbf24;
     text-shadow: 0 0 6vh rgba(255,196,0,.4), 0 .08em 0 rgba(0,0,0,.6);
@@ -239,6 +255,7 @@
 
   /* ── Overlay sorteio de cartela ── */
   function mostrarCartela(cartela, duracaoMs) {
+    ocultarGanhadores();
     clearTimeout(cartelaTimer);
     document.getElementById('cartelaLabel').textContent  = cartela.rotulo || '🎉 Cartela Sorteada!';
     document.getElementById('cartelaNumero').textContent = cartela.id;
@@ -258,8 +275,46 @@
   }
 
   function ocultarCartela() {
+    ocultarGanhadores();
     clearTimeout(cartelaTimer);
     document.getElementById('cartelaOverlay').classList.remove('show');
+  }
+
+  /* ── Ganhadores em tela cheia: páginas de 6, trocam sozinhas; ficam até "ocultar" ── */
+  var ganhTimer = null, ganhItens = [], ganhPagina = 0, GANH_POR_PAGINA = 6;
+  function ganhEl(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+  function ganhPill(rotulo, valor, extra) { var p = ganhEl('div', 'ganh-pill' + (extra ? ' ' + extra : '')); p.appendChild(ganhEl('small', '', rotulo)); p.appendChild(document.createTextNode(valor)); return p; }
+  function desenharGanhadores() {
+    var total = Math.max(1, Math.ceil(ganhItens.length / GANH_POR_PAGINA));
+    ganhPagina = ganhPagina % total;
+    var grade = document.getElementById('ganhGrade'); grade.innerHTML = '';
+    ganhItens.slice(ganhPagina * GANH_POR_PAGINA, (ganhPagina + 1) * GANH_POR_PAGINA).forEach(function(g) {
+      var c = ganhEl('div', 'ganh-card');
+      c.appendChild(ganhEl('div', 'ganh-tipo', (g.fase === 'cheia' ? 'Cartela cheia' : g.fase === 'sorteio' ? 'Sorteio de série' : 'Quina') + (g.padrao ? ' · ' + g.padrao : '')));
+      var pills = ganhEl('div', 'ganh-pills');
+      if (g.rodada) pills.appendChild(ganhPill('Rodada', g.rodada + 'ª'));
+      if (g.serie) pills.appendChild(ganhPill('Série', String(g.serie)));
+      if (g.cartela) pills.appendChild(ganhPill('Cartela', String(g.cartela), 'cart'));
+      c.appendChild(pills);
+      c.appendChild(ganhEl('div', 'ganh-nome', g.comprador || 'Sem comprador lançado'));
+      if (g.premio) c.appendChild(ganhEl('div', 'ganh-premio', '🎁 ' + g.premio));
+      grade.appendChild(c);
+    });
+    document.getElementById('ganhPag').textContent = total > 1 ? (ganhPagina + 1) + ' / ' + total : '';
+  }
+  function mostrarGanhadores(p) {
+    ganhItens = (p && p.itens) || [];
+    ganhPagina = 0;
+    document.getElementById('ganhTitulo').textContent = '🏆 ' + ((p && p.titulo) || 'Ganhadores');
+    if (!ganhItens.length) { ocultarGanhadores(); return; }
+    desenharGanhadores();
+    document.getElementById('ganhOverlay').classList.add('show');
+    clearInterval(ganhTimer);
+    if (ganhItens.length > GANH_POR_PAGINA) ganhTimer = setInterval(function() { ganhPagina++; desenharGanhadores(); }, 9000);
+  }
+  function ocultarGanhadores() {
+    clearInterval(ganhTimer);
+    var o = document.getElementById('ganhOverlay'); if (o) o.classList.remove('show');
   }
 
   /* ── Processa mensagem, venha ela do BroadcastChannel (mesmo
@@ -313,6 +368,8 @@
     if (d.tipo === 'ocultar_cartela') {
       ocultarCartela();
     }
+    if (d.tipo === 'mostrar_ganhadores') { mostrarGanhadores(d.payload); }
+    if (d.tipo === 'ocultar_ganhadores') { ocultarGanhadores(); }
   }
 
   /* ── BroadcastChannel (sincronização instantânea entre abas do
@@ -346,7 +403,7 @@
         _fbUltimoTs = d.ts;
         /* A primeira leitura é só o estado guardado. As pedras valem (a tela abre "atualizada" com o jogo em andamento),
            mas uma troca de tela ou um sorteio de série velhos não são comandos novos. */
-        if (inicial && (d.tipo === 'trocar_tela' || d.tipo === 'sorteio_cartela' || d.tipo === 'ocultar_cartela')) return;
+        if (inicial && (d.tipo === 'trocar_tela' || d.tipo === 'sorteio_cartela' || d.tipo === 'ocultar_cartela' || d.tipo === 'mostrar_ganhadores' || d.tipo === 'ocultar_ganhadores')) return;
         processarMensagem(d);
       });
     });
@@ -394,5 +451,9 @@
   buildBoard();
   carregarPatrocinadoresDatashow(); // ← busca patrocinadores e exibe Coringa ao abrir
 </script>
+<div class="ganh-overlay" id="ganhOverlay">
+  <div class="ganh-topo"><div class="ganh-titulo" id="ganhTitulo">🏆 Ganhadores</div><div class="ganh-pag" id="ganhPag"></div></div>
+  <div class="ganh-grade" id="ganhGrade"></div>
+</div>
 </body>
 </html>

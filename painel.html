@@ -10,6 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="firebase-config.js"></script>
+<script src="ganhadores-lib.js"></script>
 <script src="acesso.js"></script>
 <style>
 /* ══ RESET ══ */
@@ -450,6 +451,27 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
 
         <div class="feedback" id="fbCartela"></div>
 
+        <!-- Ganhadores no telão -->
+        <div class="card" style="margin-top:14px">
+          <div class="card-title"><i class="ti ti-trophy"></i> Ganhadores no telão</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <select id="ganhTipo" style="padding:8px;border-radius:8px;background:#1a1a1a;color:#e5e5e5;border:1px solid #333">
+              <option value="todos">Todos</option><option value="quina">Quinas</option>
+              <option value="cheia">Cartelas cheias</option><option value="sorteio">Sorteio de séries</option>
+            </select>
+            <select id="ganhRodada" style="padding:8px;border-radius:8px;background:#1a1a1a;color:#e5e5e5;border:1px solid #333">
+              <option value="0">Todas as rodadas</option><option value="1">1ª rodada</option><option value="2">2ª rodada</option>
+              <option value="3">3ª rodada</option><option value="4">4ª rodada</option>
+            </select>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-gold" onclick="mostrarGanhadoresTelao()"><i class="ti ti-device-tv"></i> Mostrar no Telão</button>
+            <button class="btn btn-ghost" onclick="ocultarGanhadoresTelao()"><i class="ti ti-eye-off"></i> Ocultar do Telão</button>
+          </div>
+          <div style="font-size:12px;color:#777;margin-top:6px">Mostra os mais recentes (até 24), com rodada, série e cartela em destaque. Sem telefone. Fica na tela até você ocultar; com mais de 6, troca de página sozinho.</div>
+          <div class="feedback" id="fbGanh"></div>
+        </div>
+
         <div class="card">
           <div class="card-title"><i class="ti ti-list"></i> Séries sorteadas (<span id="scHistoricoCount">0</span>)</div>
           <table style="width:100%;border-collapse:collapse;font-size:13px">
@@ -500,7 +522,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
             <button class="btn btn-ghost" onclick="testarScript()"><i class="ti ti-plug"></i> Testar</button>
           </div>
           <div class="feedback" id="fbScript"></div>
-          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.13 · API: verificando…</div>
+          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.14 · API: verificando…</div>
         </div>
       </div>
 
@@ -1456,6 +1478,28 @@ function sortearCartela(){
   });
 }
 
+/* Ganhadores no telão: busca a lista no servidor e envia (sem telefone) */
+function mostrarGanhadoresTelao(){
+  if(!scriptUrl){ fb('fbGanh','err','Configure a URL do Apps Script.'); return; }
+  const fase = document.getElementById('ganhTipo').value;
+  const rod  = Number(document.getElementById('ganhRodada').value) || 0;
+  fb('fbGanh','warn','Buscando ganhadores…');
+  _scJsonp(scriptUrl + '?acao=listarGanhadores', function(err, data){
+    if(err || !data || !data.sucesso || !data.dados || !data.dados.ganhadores){
+      fb('fbGanh','err','Não foi possível buscar os ganhadores (servidor desatualizado ou sem conexão).'); return;
+    }
+    const lista = Ganhadores.filtrar(data.dados.ganhadores, { fase: fase, rodada: rod }).slice(0, 24);
+    if(!lista.length){ fb('fbGanh','warn','Nenhum ganhador com esse filtro.'); return; }
+    const itens = lista.map(g=>({ fase:g.fase, rodada:g.rodada, serie:g.serie, cartela:g.cartela, comprador:g.comprador, padrao:g.padrao, premio:g.premio }));
+    enviarCanal('mostrar_ganhadores', { titulo: Ganhadores.tituloApresentacao(fase, rod), itens: itens });
+    fb('fbGanh','ok', lista.length + ' ganhador(es) enviado(s) para o telão.');
+  });
+}
+function ocultarGanhadoresTelao(){
+  enviarCanal('ocultar_ganhadores', {});
+  fb('fbGanh','ok','Ganhadores ocultados do telão.');
+}
+
 /* Guarda a série sorteada na aba Ganhadores (a tela Ganhadores lista tudo) */
 function registrarSorteio(serie){
   const premio = (document.getElementById('scPremio').value || '').trim();
@@ -1632,7 +1676,7 @@ async function testarPlanilha(){
    INIT AUTH
 ══════════════════════════════════════════════════════════ */
 /* Versão do arquivo e do Apps Script (a ação desconhecida responde só { versao }) */
-const FRONT_VERSION = '1.13'; /* versão deste painel.html — atualizar a cada mudança */
+const FRONT_VERSION = '1.14'; /* versão deste painel.html — atualizar a cada mudança */
 (function(){
   _scJsonp(SCRIPT_PATROC + '?acao=_ping', function(err, data){
     const el = document.getElementById('verInfo');
