@@ -9,6 +9,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script src="sirene.js"></script>
 <style>
   :root { --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
@@ -326,15 +327,7 @@
      que tenha internet). É um "extra" ao lado do BroadcastChannel: se
      o Firebase falhar, a sincronização no mesmo computador continua
      funcionando normalmente. ── */
-  var firebaseConfig = {
-    apiKey: "AIzaSyBPkvhBHOfZOzEqlukWgHRJnoDeYFrtj0I",
-    authDomain: "show-de-premios-scj.firebaseapp.com",
-    databaseURL: "https://show-de-premios-scj-default-rtdb.firebaseio.com",
-    projectId: "show-de-premios-scj",
-    storageBucket: "show-de-premios-scj.firebasestorage.app",
-    messagingSenderId: "869902837867",
-    appId: "1:869902837867:web:d690f79e6f916da672a92e"
-  };
+  var firebaseConfig = window.FIREBASE_CONFIG; /* vem de firebase-config.js */
   try {
     firebase.initializeApp(firebaseConfig);
     firebase.auth().signInAnonymously().catch(function(e){

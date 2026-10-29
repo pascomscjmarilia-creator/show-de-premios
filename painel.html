@@ -9,6 +9,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script src="acesso.js"></script>
 <style>
 /* ══ RESET ══ */
@@ -842,15 +843,7 @@ CANAL.onmessage = function(e){
    Isto é um "extra" ao lado do BroadcastChannel — não substitui nem
    altera o que já funciona entre abas do mesmo navegador/computador.
 ══════════════════════════════════════════════════════════ */
-const firebaseConfig = {
-  apiKey: "AIzaSyBPkvhBHOfZOzEqlukWgHRJnoDeYFrtj0I",
-  authDomain: "show-de-premios-scj.firebaseapp.com",
-  databaseURL: "https://show-de-premios-scj-default-rtdb.firebaseio.com",
-  projectId: "show-de-premios-scj",
-  storageBucket: "show-de-premios-scj.firebasestorage.app",
-  messagingSenderId: "869902837867",
-  appId: "1:869902837867:web:d690f79e6f916da672a92e"
-};
+const firebaseConfig = window.FIREBASE_CONFIG; /* vem de firebase-config.js */
 let firebaseRef = null;
 try {
   firebase.initializeApp(firebaseConfig);
