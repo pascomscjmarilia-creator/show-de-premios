@@ -1,4 +1,4 @@
-/* acesso.js — Show de Prêmios — Versão 1.0
+/* acesso.js — Show de Prêmios — Versão 1.1
  * Guarda o token de acesso (emitido no login) e o envia nas chamadas ao Apps Script.
  * Se o servidor recusar ("naoAutorizado"), abre um pequeno login e repete a chamada.
  *
@@ -42,7 +42,7 @@
     aberto = true;
 
     var ov = document.createElement('div');
-    ov.style.cssText = 'position:fixed;inset:0;z-index:2147483646;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;font-family:Segoe UI,Arial,sans-serif';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:2147483646;background:rgba(10,61,26,.98);display:flex;align-items:center;justify-content:center;font-family:Segoe UI,Arial,sans-serif';
     ov.innerHTML =
       '<div style="background:#fff;color:#1f2a1f;border-radius:14px;padding:26px 28px;width:min(92vw,360px);box-shadow:0 10px 40px rgba(0,0,0,.5)">' +
         '<div style="font-size:20px;font-weight:700;color:#0A3D1A;margin-bottom:4px">🔐 Entrar para continuar</div>' +
@@ -79,5 +79,11 @@
     senha.addEventListener('keydown', function (e) { if (e.key === 'Enter') entrar(); });
   }
 
-  window.Acesso = { token: token, comToken: comToken, negado: negado, pedirLogin: pedirLogin, authUrl: AUTH_URL };
+  /* Telas internas (Cadastro, Verificador): sem sessão válida, pede o login já ao abrir. */
+  function exigirLogin(depois) {
+    if (token()) { if (depois) depois(); return; }
+    pedirLogin(depois);
+  }
+
+  window.Acesso = { token: token, comToken: comToken, negado: negado, pedirLogin: pedirLogin, exigirLogin: exigirLogin, authUrl: AUTH_URL };
 })();
