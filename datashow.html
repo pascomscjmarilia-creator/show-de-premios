@@ -126,7 +126,7 @@
 
       <!-- Overlay sorteio de cartela -->
       <div class="cartela-overlay" id="cartelaOverlay">
-        <div class="cartela-label">🎉 Cartela Sorteada!</div>
+        <div class="cartela-label" id="cartelaLabel">🎉 Cartela Sorteada!</div>
         <div class="cartela-numero" id="cartelaNumero">—</div>
         <div class="cartela-nome"   id="cartelaNome"></div>
         <div class="cartela-sub"    id="cartelaSub"></div>
@@ -239,10 +239,11 @@
   /* ── Overlay sorteio de cartela ── */
   function mostrarCartela(cartela, duracaoMs) {
     clearTimeout(cartelaTimer);
+    document.getElementById('cartelaLabel').textContent  = cartela.rotulo || '🎉 Cartela Sorteada!';
     document.getElementById('cartelaNumero').textContent = cartela.id;
     document.getElementById('cartelaNome').textContent   = cartela.nome || '';
-    document.getElementById('cartelaSub').textContent    =
-      cartela.restantes !== undefined ? cartela.restantes + ' cartelas restantes' : '';
+    document.getElementById('cartelaSub').textContent    = cartela.sub ||
+      (cartela.restantes !== undefined ? cartela.restantes + ' cartelas restantes' : '');
 
     var overlay = document.getElementById('cartelaOverlay');
     overlay.classList.remove('show');

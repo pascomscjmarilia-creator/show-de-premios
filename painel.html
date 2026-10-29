@@ -244,7 +244,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
         <i class="ti ti-circle-dot"></i> Sorteio de Pedras
       </div>
       <div class="nav-item" onclick="showPanel('cartelas')" id="nav-cartelas">
-        <i class="ti ti-cards"></i> Sorteio de Cartelas
+        <i class="ti ti-cards"></i> Sorteio de Séries
       </div>
       <div class="nav-item" onclick="showPanel('videos')" id="nav-videos">
         <i class="ti ti-player-play"></i> Vídeos
@@ -403,25 +403,31 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
       <!-- ════ PAINEL SORTEIO CARTELAS ════ -->
       <div class="panel" id="panel-cartelas">
         <div class="card">
-          <div class="card-title"><i class="ti ti-cards"></i> Sorteio de Cartelas</div>
+          <div class="card-title"><i class="ti ti-cards"></i> Sorteio de Séries</div>
 
           <!-- Contador -->
           <div class="stats-row" id="cartelaStats">
-            <div class="stat-box"><div class="stat-num" id="ctTotal" style="color:#888">—</div><div class="stat-label">Total</div></div>
-            <div class="stat-box"><div class="stat-num" id="ctDisp" style="color:#4ade80">—</div><div class="stat-label">Disponíveis</div></div>
+            <div class="stat-box"><div class="stat-num" id="ctTotal" style="color:#888">—</div><div class="stat-label">Séries vendidas</div></div>
+            <div class="stat-box"><div class="stat-num" id="ctDisp" style="color:#4ade80">—</div><div class="stat-label">Concorrendo</div></div>
             <div class="stat-box"><div class="stat-num" id="ctSort" style="color:#fbbf24">—</div><div class="stat-label">Sorteadas</div></div>
           </div>
 
+          <label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:13px;color:#aaa;cursor:pointer">
+            <input type="checkbox" id="scNaoRepetir" checked onchange="_scRecalcular()">
+            Não repetir o mesmo comprador (quem já ganhou não concorre de novo)
+          </label>
+          <div style="font-size:12px;color:#777;margin-top:6px" id="scStatusMsg"></div>
+
           <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn btn-primary btn-sortear" style="flex:1" onclick="sortearCartela()" id="btnSortearCartela">
-              <i class="ti ti-cards"></i> SORTEAR CARTELA
+              <i class="ti ti-cards"></i> SORTEAR SÉRIE
             </button>
           </div>
         </div>
 
         <!-- Resultado -->
         <div class="cartela-result" id="cartelaResult">
-          <div style="font-size:13px;color:#fbbf24;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">🎉 Cartela Sorteada!</div>
+          <div style="font-size:13px;color:#fbbf24;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">🎉 Série Sorteada!</div>
           <div class="cartela-result-num" id="resNumero">—</div>
           <div class="cartela-result-nome" id="resNome"></div>
           <div class="cartela-result-info" id="resInfo"></div>
@@ -432,6 +438,14 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
         </div>
 
         <div class="feedback" id="fbCartela"></div>
+
+        <div class="card">
+          <div class="card-title"><i class="ti ti-list"></i> Séries sorteadas (<span id="scHistoricoCount">0</span>)</div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead><tr style="color:#777;text-align:left"><th style="padding:4px 10px">Série</th><th style="padding:4px 10px">Comprador</th><th style="padding:4px 10px">Telefone</th><th style="padding:4px 10px">Hora</th></tr></thead>
+            <tbody id="scHistoricoBody"><tr><td colspan="4" style="text-align:center;color:#444;padding:16px">Nenhum sorteio ainda.</td></tr></tbody>
+          </table>
+        </div>
 
         <div class="card">
           <div class="card-title"><i class="ti ti-settings"></i> Gerenciar Sorteios</div>
@@ -475,7 +489,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
             <button class="btn btn-ghost" onclick="testarScript()"><i class="ti ti-plug"></i> Testar</button>
           </div>
           <div class="feedback" id="fbScript"></div>
-          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.8 · API: verificando…</div>
+          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.9 · API: verificando…</div>
         </div>
       </div>
 
@@ -1277,6 +1291,7 @@ function updateHist(){
    SORTEIO DE CARTELAS
 ══════════════════════════════════════════════════════════ */
 var _sc = {
+  series:      [],
   cartelas:    [],
   disponiveis: [],
   historico:   [],
@@ -1303,47 +1318,48 @@ function _scJsonp(url, cb){
   document.head.appendChild(tag);
 }
 
-/* Carrega todas as cartelas via paginação */
+/* Carrega as séries (uma linha por série) e calcula quem concorre ao sorteio */
 function carregarContadorCartelas(){
   if(!scriptUrl) return;
   _sc.carregando = true;
-  _sc.cartelas   = [];
   _scStatus('Carregando…');
-  _scBuscarPagina(1);
-}
-
-function _scBuscarPagina(pagina){
-  const url = scriptUrl + '?acao=listarCartelas&pagina=' + pagina + '&limite=500';
-  _scJsonp(url, function(err, data){
-    if(err || !data || !data.sucesso){
-      _scStatus('Erro ao carregar cartelas.');
-      _sc.carregando = false;
-      return;
-    }
-    const d = data.dados;
-    (d.cartelas||[]).forEach(c=>{
-      _sc.cartelas.push({ id:c.id, comprador:c.comprador||'', telefone:c.telefone||'', sorteada:c.sorteada||false });
-    });
-    if(d.temProxima){
-      _scBuscarPagina(pagina + 1);
-    } else {
-      _sc.carregando = false;
-      _scRecalcular();
-    }
+  _scJsonp(scriptUrl + '?acao=listarVendas', function(err, data){
+    _sc.carregando = false;
+    if(err || !data || !data.sucesso){ _scStatus('Erro ao carregar as séries.'); return; }
+    _sc.series = (data.dados && data.dados.series) || [];
+    _scRecalcular();
   });
 }
 
+/* Identifica o comprador: telefone (só dígitos) ou, sem telefone, o nome */
+function _scChave(s){
+  const tel = String(s.telefone||'').replace(/\D/g,'');
+  return tel.length>=8 ? 'tel:'+tel : 'nome:'+String(s.comprador||'').trim().toLowerCase();
+}
+
 function _scRecalcular(){
-  _sc.disponiveis = _sc.cartelas.filter(c=>!c.sorteada).map(c=>c.id);
-  const total     = _sc.cartelas.length;
-  const sorteadas = total - _sc.disponiveis.length;
-  const disp      = _sc.disponiveis.length;
-  document.getElementById('ctTotal').textContent = total;
+  const vendidas  = _sc.series.filter(s=>s.vendidas>0);
+  const sorteadas = _sc.series.filter(s=>s.sorteada);
+  const chk       = document.getElementById('scNaoRepetir');
+  const naoRepetir = chk ? chk.checked : true;
+  const ganhadores = new Set(sorteadas.filter(s=>s.comprador).map(_scChave));
+  let fora = 0;
+  _sc.disponiveis = vendidas.filter(s=>!s.sorteada).filter(s=>{
+    if(naoRepetir && ganhadores.has(_scChave(s))){ fora++; return false; }
+    return true;
+  }).map(s=>s.serie);
+  const disp = _sc.disponiveis.length;
+  document.getElementById('ctTotal').textContent = vendidas.length;
   document.getElementById('ctDisp').textContent  = disp;
-  document.getElementById('ctSort').textContent  = sorteadas;
+  document.getElementById('ctSort').textContent  = sorteadas.length;
   const btn = document.getElementById('btnSortearCartela');
   if(btn) btn.disabled = (disp===0 || _sc.carregando);
-  _scStatus(disp>0 ? disp+' disponíve'+(disp!==1?'is':'l') : '⚠️ Todas as cartelas já foram sorteadas!');
+  let msg;
+  if(!vendidas.length) msg = '⚠️ Nenhuma série vendida ainda. Registre as vendas em "Vendas por série".';
+  else if(disp===0)    msg = '⚠️ Todas as séries concorrentes já foram sorteadas!';
+  else                 msg = disp+' série'+(disp!==1?'s':'')+' concorrendo';
+  if(fora) msg += ' · '+fora+' fora por já terem ganhado (mesmo comprador)';
+  _scStatus(msg);
 }
 
 /* Sorteia via GET (JSONP) — evita CORS do POST */
@@ -1355,45 +1371,43 @@ function sortearCartela(){
   btn.disabled = true;
   btn.innerHTML = '<i class="ti ti-loader"></i> Sorteando...';
 
-  /* Escolhe aleatoriamente entre as disponíveis */
-  const idx     = Math.floor(Math.random() * _sc.disponiveis.length);
-  const id      = _sc.disponiveis[idx];
-  const cartela = _sc.cartelas.find(c=>c.id===id);
+  /* Escolhe aleatoriamente entre as séries que concorrem */
+  const idx = Math.floor(Math.random() * _sc.disponiveis.length);
+  const n   = _sc.disponiveis[idx];
+  const serie = _sc.series.find(x=>x.serie===n);
 
-  /* Chama marcarSorteada via GET com JSONP */
-  const url = scriptUrl + '?acao=marcarSorteada&id=' + id;
-  _scJsonp(url, function(err, data){
+  /* Marca as cartelas da série como sorteadas (uma série não sai duas vezes) */
+  _scJsonp(scriptUrl + '?acao=marcarSerieSorteada&serie=' + n, function(err, data){
     _sc.sorteando = false;
     btn.disabled  = false;
-    btn.innerHTML = '<i class="ti ti-cards"></i> SORTEAR CARTELA';
+    btn.innerHTML = '<i class="ti ti-cards"></i> SORTEAR SÉRIE';
 
     if(err || !data || !data.sucesso){
       fb('fbCartela','err', (data && data.dados && data.dados.mensagem) || (err && err.message) || 'Erro ao sortear.');
       return;
     }
 
-    /* Atualiza estado local */
-    cartela.sorteada = true;
-    _sc.disponiveis.splice(idx, 1);
-    lastCartela = cartela;
+    serie.sorteada = true;
+    lastCartela = serie;
 
-    /* Exibe resultado */
-    document.getElementById('resNumero').textContent = '#' + id;
-    document.getElementById('resNome').textContent   = cartela.comprador || 'Sem nome';
-    document.getElementById('resInfo').textContent   = cartela.telefone  || '';
+    document.getElementById('resNumero').textContent = 'Série ' + n;
+    document.getElementById('resNome').textContent   = serie.comprador || 'Sem nome';
+    document.getElementById('resInfo').textContent   = (serie.telefone ? serie.telefone + ' · ' : '') + 'Cartelas ' + serie.cartelas.join(' · ');
     document.getElementById('cartelaResult').classList.add('show');
 
-    /* Histórico */
-    _sc.historico.unshift({ id, comprador:cartela.comprador, telefone:cartela.telefone, hora:new Date().toLocaleTimeString('pt-BR') });
+    _sc.historico.unshift({ serie:n, comprador:serie.comprador, telefone:serie.telefone, hora:new Date().toLocaleTimeString('pt-BR') });
     _scRenderHistorico();
     _scRecalcular();
-    fb('fbCartela','ok','Cartela #'+id+' sorteada e registrada!');
+    fb('fbCartela','ok','Série '+n+' sorteada e registrada!');
   });
 }
 
 function enviarCartelaTelao(){
-  if(!lastCartela){ fb('fbCartela','warn','Sorteie uma cartela primeiro.'); return; }
-  const cartelaPayload = { id: lastCartela.id, nome: lastCartela.comprador, telefone: lastCartela.telefone };
+  if(!lastCartela){ fb('fbCartela','warn','Sorteie uma série primeiro.'); return; }
+  const cartelaPayload = {
+    id: lastCartela.serie, nome: lastCartela.comprador,
+    rotulo: '🎉 Série Sorteada!', sub: 'Cartelas ' + lastCartela.cartelas.join(' · ')
+  };
   enviarCanal('sorteio_cartela', { cartela: cartelaPayload, duracao:20000 });
   fb('fbCartela','ok','Enviado para o telão por 20 segundos.');
 }
@@ -1410,7 +1424,7 @@ function ocultarCartelaTelao(){
    botão "Resetar" da aba de pedras, que já avisa painel + verificador
    + datashow. */
 function confirmarResetSorteios(){
-  if(!confirm('Resetar TODOS os sorteios de cartelas de patrocínio? Isso NÃO afeta os números já sorteados. Esta ação não pode ser desfeita.')) return;
+  if(!confirm('Resetar TODOS os sorteios de séries? Todas as séries voltam a concorrer. Isso NÃO afeta os números já sorteados. Esta ação não pode ser desfeita.')) return;
   if(!scriptUrl){ fb('fbCartela','err','Configure o Apps Script.'); return; }
   const url = scriptUrl + '?acao=resetarSorteios';
   _scJsonp(url, function(err, data){
@@ -1438,7 +1452,7 @@ function _scRenderHistorico(){
   }
   el.innerHTML = _sc.historico.map(h=>`
     <tr>
-      <td style="font-size:18px;font-weight:900;color:#fbbf24;padding:6px 10px">#${h.id}</td>
+      <td style="font-size:16px;font-weight:900;color:#fbbf24;padding:6px 10px">Série ${h.serie}</td>
       <td style="color:#e5e5e5;padding:6px 10px">${h.comprador||'—'}</td>
       <td style="color:#888;padding:6px 10px">${h.telefone||'—'}</td>
       <td style="color:#555;padding:6px 10px">${h.hora}</td>
@@ -1547,7 +1561,7 @@ async function testarPlanilha(){
    INIT AUTH
 ══════════════════════════════════════════════════════════ */
 /* Versão do arquivo e do Apps Script (a ação desconhecida responde só { versao }) */
-const FRONT_VERSION = '1.8'; /* versão deste painel.html — atualizar a cada mudança */
+const FRONT_VERSION = '1.9'; /* versão deste painel.html — atualizar a cada mudança */
 (function(){
   _scJsonp(SCRIPT_PATROC + '?acao=_ping', function(err, data){
     const el = document.getElementById('verInfo');

@@ -20,6 +20,7 @@
 /* Mude a VERSAO a cada edição. Ela aparece no cadastro, no verificador e no painel
  * ("API: ..."), então dá para conferir se a nova versão foi mesmo publicada.
  * Changelog:
+ *   2.5.0 (2026-10-29) — sorteio por série: marcarSerieSorteada (marca as 4 cartelas) e "sorteada" na lista de séries.
  *   2.4.0 (2026-10-29) — vendas por série: listar (uma linha por série), vender várias séries de uma vez,
  *                        liberar série, coluna vendedor.
  *   2.3.0 (2026-10-28) — registro de ganhadores por rodada e fase (aba "Ganhadores", criada sozinha).
@@ -30,7 +31,7 @@
  *                        pessoais. Desligado por padrão: ligue EXIGIR_TOKEN depois de testar.
  *   2.0.1 (2026-10-26) — doGet único: repassa ?action= (login) para o Auth.gs.
  *   2.0.0 (2026-10-26) — script único na planilha nova: cartelas, patrocinadores e vídeos. */
-var VERSAO = '2.4.0 (29/10/2026)';
+var VERSAO = '2.5.0 (29/10/2026)';
 
 /* ── Proteção de acesso ───────────────────────────────────────────────
  * false = tudo aberto como antes (modo de transição).
@@ -42,7 +43,7 @@ var PROTEGIDAS = {
   cadastrarCartelasEmLote: 1, marcarSorteada: 1, resetarSorteios: 1,
   adicionarVideo: 1, removerVideo: 1,
   buscarSerie: 1, atualizarSerie: 1, cadastrarSeriesEmLote: 1, organizarSeries: 1, listarSeries: 1,
-  registrarGanhador: 1, listarVendas: 1, liberarSerie: 1
+  registrarGanhador: 1, listarVendas: 1, liberarSerie: 1, marcarSerieSorteada: 1
 };
 var TOKEN_HORAS_ADMIN = 12; /* administradores não têm prazo de acesso: o token vale 12 h */
 var ABA_CARTELAS = 'Cartelas';
@@ -78,6 +79,7 @@ function doGet(e) {
       case 'registrarGanhador':       out = ok(registrarGanhador_(p)); break;
       case 'listarVendas':            out = ok(listarVendas_()); break;
       case 'liberarSerie':            out = ok(liberarSerie_(p)); break;
+      case 'marcarSerieSorteada':     out = ok(marcarSerieSorteada_(p.serie)); break;
       case 'marcarSorteada':          out = ok(marcarSorteada_(p.id)); break;
       case 'resetarSorteios':         out = ok(resetarSorteios_()); break;
       case '_info':                   out = ok(info_()); break;
@@ -517,6 +519,22 @@ function liberarSerie_(p) {
   });
 }
 
+/* Sorteio de prêmios por série: marca as cartelas da série como sorteadas (uma série não sai duas vezes). */
+function marcarSerieSorteada_(serie) {
+  var n = Number(serie);
+  if (!n) throw new Error('Informe o número da série.');
+  return comLock_(function () {
+    var sh = aba_(ABA_CARTELAS);
+    var d = ler_(sh);
+    exigirSerie_(d);
+    var mapa = linhasPorSerie_(d, [n]);
+    if (!mapa[n].length) throw new Error('Série ' + n + ' não encontrada.');
+    var col = col_(d, 'sorteada') + 1;
+    mapa[n].forEach(function (i) { sh.getRange(i + 2, col).setValue(true); });
+    return { serie: n, cartelas: mapa[n].map(function (i) { return Number(d.linhas[i][d.colunas.id_cartela]); }) };
+  });
+}
+
 /* Uma linha por série, para a tela de vendas. */
 function listarVendas_() {
   var d = ler_(aba_(ABA_CARTELAS));
@@ -540,7 +558,8 @@ function listarVendas_() {
       serie: s, cartelas: cs.map(function (x) { return x.id; }), vendidas: comp.length, total: cs.length,
       comprador: comp.length ? base.comprador : '', telefone: comp.length ? base.telefone : '',
       paga: paga, dataVenda: comp.length ? base.dataVenda : '', vendedor: comp.length ? (base.vendedor || '') : '',
-      situacao: situacao
+      situacao: situacao,
+      sorteada: cs.some(function (x) { return x.sorteada; })
     };
   });
   return { series: series, semSerie: semSerie, vendedores: Object.keys(vend).sort() };
