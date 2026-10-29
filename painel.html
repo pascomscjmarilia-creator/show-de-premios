@@ -265,6 +265,9 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
       <a class="nav-item" href="cadastro.html" target="_blank" style="text-decoration:none">
         <i class="ti ti-clipboard"></i> Cadastro
       </a>
+      <a class="nav-item" href="vendas.html" target="_blank" style="text-decoration:none">
+        <i class="ti ti-receipt"></i> Vendas por série
+      </a>
 
       <!-- Mini-board sidebar -->
       <div style="padding:12px;margin-top:auto">
@@ -472,7 +475,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
             <button class="btn btn-ghost" onclick="testarScript()"><i class="ti ti-plug"></i> Testar</button>
           </div>
           <div class="feedback" id="fbScript"></div>
-          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.7 · API: verificando…</div>
+          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.8 · API: verificando…</div>
         </div>
       </div>
 
@@ -1544,7 +1547,7 @@ async function testarPlanilha(){
    INIT AUTH
 ══════════════════════════════════════════════════════════ */
 /* Versão do arquivo e do Apps Script (a ação desconhecida responde só { versao }) */
-const FRONT_VERSION = '1.7'; /* versão deste painel.html — atualizar a cada mudança */
+const FRONT_VERSION = '1.8'; /* versão deste painel.html — atualizar a cada mudança */
 (function(){
   _scJsonp(SCRIPT_PATROC + '?acao=_ping', function(err, data){
     const el = document.getElementById('verInfo');

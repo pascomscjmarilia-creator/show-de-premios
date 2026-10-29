@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vendas por Série — Show de Prêmios</title>
+<!-- vendas.html — Versão 1.0
+     Lista todas as séries e registra o proprietário (comprador) de cada uma. Uma série = uma folha com 4 cartelas;
+     salvar vale para as 4. Aceita várias séries de uma vez ("7, 12, 15-18"). Pede login. -->
+<script src="acesso.js"></script>
+<style>
+  :root { --verde-escuro:#0A3D1A; --verde-medio:#1A6B30; --verde-claro:#A8E063; --verde-fundo:#EAF3DE; --borda:#d5dfc7; --txt:#1f2a1f; --mudo:#667; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Segoe UI',Arial,sans-serif; background:#f3f6ee; color:var(--txt); }
+  header { background:var(--verde-escuro); color:#fff; padding:12px 20px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  header h1 { margin:0; font-size:18px; color:var(--verde-claro); }
+  header .sub { font-size:11px; color:rgba(255,255,255,.55); }
+  header a { margin-left:auto; color:#cfe8b6; text-decoration:none; font-size:20px; }
+  main { max-width:1100px; margin:0 auto; padding:16px; }
+  .metricas { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:14px; }
+  .metrica { background:#fff; border:1px solid var(--borda); border-radius:10px; padding:10px 14px; }
+  .metrica .n { font-size:24px; font-weight:700; color:var(--verde-escuro); }
+  .metrica .l { font-size:12px; color:var(--mudo); }
+  .barra { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px; }
+  .barra input[type=search] { flex:1; min-width:220px; padding:9px 12px; border:1px solid var(--borda); border-radius:8px; font-size:14px; }
+  .chip { border:1px solid #b9c9a5; background:#fff; border-radius:999px; padding:6px 14px; font-size:13px; cursor:pointer; color:#33442f; }
+  .chip.on { background:var(--verde-medio); color:#fff; border-color:var(--verde-medio); }
+  .btn { border:0; border-radius:8px; padding:9px 16px; font-weight:600; cursor:pointer; font-size:14px; background:var(--verde-medio); color:#fff; }
+  .btn.sec { background:#e5efd9; color:var(--verde-escuro); }
+  .btn.perigo { background:#fbe9e7; color:#a32d2d; }
+  .tabela-wrap { background:#fff; border:1px solid var(--borda); border-radius:10px; max-height:46vh; overflow:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  thead th { position:sticky; top:0; background:#f1f6ea; text-align:left; padding:8px 10px; font-weight:600; color:#44553f; border-bottom:1px solid var(--borda); }
+  td { padding:7px 10px; border-bottom:1px solid #edf1e6; }
+  tr.lin { cursor:pointer; }
+  tr.lin:hover td { background:#f7faf3; }
+  tr.lin.sel td { background:#e1f0d2; }
+  .tag { font-size:12px; padding:2px 9px; border-radius:7px; white-space:nowrap; font-weight:600; }
+  .t-paga { background:#dff0d4; color:#27500A; } .t-pend { background:#fdf0d3; color:#7a5200; }
+  .t-livre { background:#eee; color:#555; } .t-parcial { background:#fbe0d6; color:#8a2f12; }
+  .mudo { color:#9aa; }
+  .form { background:#fff; border:1px solid var(--borda); border-radius:12px; padding:14px 16px; margin-top:14px; }
+  .form h2 { margin:0 0 8px; font-size:15px; color:var(--verde-escuro); }
+  .grade { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; }
+  label { font-size:12px; color:var(--mudo); display:block; }
+  label input, label select { width:100%; margin-top:3px; padding:9px 10px; border:1px solid var(--borda); border-radius:8px; font-size:15px; }
+  .acoes { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  #msg { margin-top:10px; font-size:13px; min-height:18px; }
+  #msg.ok { color:#27500A; } #msg.erro { color:#a32d2d; }
+  .dica { font-size:12px; color:var(--mudo); margin-top:4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>📄 Vendas por série</h1>
+    <div class="sub" id="verInfo">vendas.html v1.0 · API: verificando…</div>
+  </div>
+  <a href="index.html" title="Voltar para a tela principal">🏠</a>
+</header>
+
+<main>
+  <div class="metricas">
+    <div class="metrica"><div class="n" id="m-total">0</div><div class="l">Séries</div></div>
+    <div class="metrica"><div class="n" id="m-vend">0</div><div class="l">Vendidas</div></div>
+    <div class="metrica"><div class="n" id="m-paga">0</div><div class="l">Pagas</div></div>
+    <div class="metrica"><div class="n" id="m-pend">0</div><div class="l">A receber</div></div>
+    <div class="metrica"><div class="n" id="m-livre">0</div><div class="l">Disponíveis</div></div>
+  </div>
+
+  <div class="barra">
+    <input type="search" id="busca" placeholder="🔍 Buscar série, cartela, comprador, telefone ou vendedor" oninput="desenhar()">
+    <button class="chip on" data-f="todas" onclick="filtrar(this)">Todas</button>
+    <button class="chip" data-f="livre" onclick="filtrar(this)">Disponíveis</button>
+    <button class="chip" data-f="receber" onclick="filtrar(this)">A receber</button>
+    <button class="chip" data-f="paga" onclick="filtrar(this)">Pagas</button>
+    <button class="btn sec" onclick="baixarCsv()">⬇️ Baixar lista (CSV)</button>
+  </div>
+
+  <div class="tabela-wrap">
+    <table>
+      <thead><tr><th style="width:70px">Série</th><th>Cartelas</th><th>Comprador</th><th>Telefone</th><th>Vendedor</th><th>Situação</th></tr></thead>
+      <tbody id="corpo"><tr><td colspan="6" class="mudo">Carregando…</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="form">
+    <h2 id="formTitulo">Registrar venda</h2>
+    <div class="grade">
+      <label>Série(s) <input id="fSeries" placeholder="Ex.: 7  ou  7, 12, 15-18" autocomplete="off"></label>
+      <label>Nome do comprador *<input id="fNome" autocomplete="off"></label>
+      <label>Telefone / WhatsApp<input id="fTel" inputmode="tel" placeholder="(14) 99999-0000" autocomplete="off" oninput="mascaraTelefone(this)"></label>
+      <label>Vendedor<input id="fVend" list="listaVendedores" autocomplete="off"><datalist id="listaVendedores"></datalist></label>
+      <label>Pagamento
+        <select id="fPaga"><option value="true">✅ Pago</option><option value="false">⏳ Pendente</option></select></label>
+      <label>Data da venda<input id="fData" type="date"></label>
+    </div>
+    <div class="dica">Salvar vale para <b>todas as cartelas</b> de cada série. Para vender várias séries ao mesmo comprador, separe por vírgula ou use intervalos (15-18).</div>
+    <div class="acoes">
+      <button class="btn" id="btnSalvar" onclick="salvar()">💾 Salvar venda</button>
+      <button class="btn perigo" onclick="liberar()">↩ Liberar série(s)</button>
+      <button class="btn sec" onclick="limparForm()">✕ Limpar</button>
+    </div>
+    <div id="msg"></div>
+  </div>
+</main>
+
+<script>
+var API = Acesso.authUrl;
+var FRONT_VERSION = '1.0'; // versão deste arquivo vendas.html — atualizar a cada mudança
+var dados = { series: [], semSerie: 0, vendedores: [] };
+var filtro = 'todas';
+var selecionada = null;
+
+function $(id) { return document.getElementById(id); }
+function esc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+/* ── JSONP com token (pede login quando o servidor recusar) ── */
+function jsonp(url, cb) {
+  var id  = '_cb' + Date.now() + (Math.random() * 9999 | 0);
+  var tag = document.createElement('script');
+  window[id] = function(data) {
+    try { delete window[id]; } catch(e) { window[id] = void 0; }
+    tag.parentNode && tag.parentNode.removeChild(tag);
+    if (Acesso.negado(data)) { Acesso.pedirLogin(function() { jsonp(url, cb); }); return; }
+    cb(null, data);
+  };
+  tag.onerror = function() {
+    try { delete window[id]; } catch(e) { window[id] = void 0; }
+    tag.parentNode && tag.parentNode.removeChild(tag);
+    cb(new Error('Erro de rede'));
+  };
+  tag.src = Acesso.comToken(url) + '&callback=' + id + '&_=' + Date.now();
+  document.head.appendChild(tag);
+}
+
+function mascaraTelefone(input) {
+  var v = input.value.replace(/\D/g, '').substring(0, 11);
+  if      (v.length > 6) v = '(' + v.substring(0,2) + ') ' + v.substring(2,7) + '-' + v.substring(7);
+  else if (v.length > 2) v = '(' + v.substring(0,2) + ') ' + v.substring(2);
+  else if (v.length > 0) v = '(' + v;
+  input.value = v;
+}
+
+function mensagem(txt, tipo) { var m = $('msg'); m.textContent = txt; m.className = tipo || ''; }
+
+/* ── lista ── */
+function carregar(depois) {
+  jsonp(API + '?acao=listarVendas', function(err, data) {
+    if (err || !data || !data.sucesso) {
+      $('corpo').innerHTML = '<tr><td colspan="6" class="mudo">' + esc((data && data.dados && data.dados.mensagem) || 'Erro ao carregar as séries.') + '</td></tr>';
+      return;
+    }
+    dados = data.dados;
+    $('listaVendedores').innerHTML = (dados.vendedores || []).map(function(v) { return '<option value="' + esc(v) + '">'; }).join('');
+    desenhar();
+    if (depois) depois();
+  });
+}
+
+function textoSituacao(s) {
+  return s.situacao === 'paga' ? '<span class="tag t-paga">Pago</span>'
+       : s.situacao === 'pendente' ? '<span class="tag t-pend">A receber</span>'
+       : s.situacao === 'parcial' ? '<span class="tag t-parcial">Parcial ' + s.vendidas + '/' + s.total + '</span>'
+       : '<span class="tag t-livre">Disponível</span>';
+}
+
+function desenhar() {
+  var q = ($('busca').value || '').toLowerCase().trim();
+  var s = dados.series, tot = s.length;
+  var vend = s.filter(function(x) { return x.vendidas > 0; }).length;
+  var paga = s.filter(function(x) { return x.situacao === 'paga'; }).length;
+  var livre = s.filter(function(x) { return x.situacao === 'livre'; }).length;
+  $('m-total').textContent = tot; $('m-vend').textContent = vend; $('m-paga').textContent = paga;
+  $('m-pend').textContent = vend - paga; $('m-livre').textContent = livre;
+
+  var lista = s.filter(function(x) {
+    if (filtro === 'livre' && x.situacao !== 'livre') return false;
+    if (filtro === 'paga' && x.situacao !== 'paga') return false;
+    if (filtro === 'receber' && !(x.situacao === 'pendente' || x.situacao === 'parcial')) return false;
+    if (!q) return true;
+    var alvo = (x.serie + ' ' + x.cartelas.join(' ') + ' ' + x.comprador + ' ' + x.telefone + ' ' + x.vendedor).toLowerCase();
+    return alvo.indexOf(q) >= 0;
+  });
+  if (!lista.length) { $('corpo').innerHTML = '<tr><td colspan="6" class="mudo">Nenhuma série encontrada.</td></tr>'; return; }
+  $('corpo').innerHTML = lista.map(function(x) {
+    return '<tr class="lin' + (x.serie === selecionada ? ' sel' : '') + '" onclick="escolher(' + x.serie + ')">' +
+      '<td><b>' + x.serie + '</b></td>' +
+      '<td class="mudo">' + x.cartelas.join(' · ') + '</td>' +
+      '<td>' + (x.comprador ? esc(x.comprador) : '<span class="mudo">sem comprador</span>') + '</td>' +
+      '<td>' + esc(x.telefone) + '</td><td>' + esc(x.vendedor) + '</td><td>' + textoSituacao(x) + '</td></tr>';
+  }).join('');
+}
+
+function filtrar(btn) {
+  document.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('on'); });
+  btn.classList.add('on'); filtro = btn.dataset.f; desenhar();
+}
+
+/* ── formulário ── */
+function hoje() { return new Date().toISOString().split('T')[0]; }
+
+function escolher(n) {
+  selecionada = n;
+  var x = dados.series.filter(function(s) { return s.serie === n; })[0];
+  if (!x) return;
+  $('fSeries').value = n;
+  $('fNome').value = x.comprador || '';
+  $('fTel').value = x.telefone || '';
+  if (x.vendedor || !$('fVend').value) $('fVend').value = x.vendedor || $('fVend').value;
+  $('fPaga').value = x.comprador ? (x.paga ? 'true' : 'false') : 'true';
+  $('fData').value = x.dataVenda || hoje();
+  $('formTitulo').textContent = x.comprador ? 'Editar série ' + n : 'Vender série ' + n;
+  mensagem('');
+  desenhar();
+  $('fNome').focus();
+}
+
+function limparForm() {
+  selecionada = null;
+  ['fSeries', 'fNome', 'fTel'].forEach(function(i) { $(i).value = ''; });
+  $('fData').value = hoje();
+  $('formTitulo').textContent = 'Registrar venda';
+  mensagem('');
+  desenhar();
+  $('fSeries').focus();
+}
+
+function salvar(sobrescrever) {
+  var series = $('fSeries').value.trim(), nome = $('fNome').value.trim();
+  if (!series) { mensagem('Informe a série (ou séries).', 'erro'); $('fSeries').focus(); return; }
+  if (!nome) { mensagem('Informe o nome do comprador.', 'erro'); $('fNome').focus(); return; }
+  $('btnSalvar').disabled = true;
+  mensagem('Salvando…');
+  var url = API + '?acao=atualizarSerie&checar=sim' + (sobrescrever ? '&sobrescrever=sim' : '')
+    + '&serie=' + encodeURIComponent(series) + '&nome=' + encodeURIComponent(nome)
+    + '&telefone=' + encodeURIComponent($('fTel').value) + '&vendedor=' + encodeURIComponent($('fVend').value.trim())
+    + '&paga=' + $('fPaga').value + '&dataVenda=' + $('fData').value;
+  jsonp(url, function(err, data) {
+    $('btnSalvar').disabled = false;
+    if (err || !data || !data.sucesso) { mensagem('Erro: ' + ((data && data.dados && data.dados.mensagem) || (err && err.message) || 'desconhecido'), 'erro'); return; }
+    var d = data.dados;
+    if (d.confirmar) {
+      mensagem('');
+      if (confirm('Estas séries já têm comprador: ' + d.jaVendidas.join(', ') + '.\n\nSubstituir os dados pelos novos?')) salvar(true);
+      return;
+    }
+    mensagem('✅ ' + (d.series.length > 1 ? 'Séries ' : 'Série ') + d.series.join(', ') + ' salva' + (d.series.length > 1 ? 's' : '') + ' para ' + nome + ' (' + d.cartelas.length + ' cartelas).', 'ok');
+    var vend = $('fVend').value;                     // o vendedor continua para a próxima venda
+    carregar(function() {
+      limparForm(); $('fVend').value = vend;
+      mensagem('✅ ' + (d.series.length > 1 ? 'Séries ' : 'Série ') + d.series.join(', ') + ' salva' + (d.series.length > 1 ? 's' : '') + ' para ' + nome + ' (' + d.cartelas.length + ' cartelas).', 'ok');
+    });
+  });
+}
+
+function liberar() {
+  var series = $('fSeries').value.trim();
+  if (!series) { mensagem('Informe a série (ou séries) para liberar.', 'erro'); $('fSeries').focus(); return; }
+  if (!confirm('Liberar a(s) série(s) ' + series + '?\nIsso apaga comprador, telefone, vendedor, data e pagamento delas.')) return;
+  mensagem('Liberando…');
+  jsonp(API + '?acao=liberarSerie&serie=' + encodeURIComponent(series), function(err, data) {
+    if (err || !data || !data.sucesso) { mensagem('Erro: ' + ((data && data.dados && data.dados.mensagem) || (err && err.message) || 'desconhecido'), 'erro'); return; }
+    carregar(function() { limparForm(); mensagem('✅ Série(s) ' + data.dados.series.join(', ') + ' liberada(s).', 'ok'); });
+  });
+}
+
+/* Enter anda pelos campos e salva no último */
+[['fSeries', 'fNome'], ['fNome', 'fTel'], ['fTel', 'fVend'], ['fVend', 'fPaga']].forEach(function(par) {
+  $(par[0]).addEventListener('keydown', function(e) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (par[0] === 'fSeries' && /^\d+$/.test($('fSeries').value.trim())) { escolher(parseInt($('fSeries').value.trim(), 10)); return; }
+    $(par[1]).focus();
+  });
+});
+['fPaga', 'fData'].forEach(function(id) {
+  $(id).addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); salvar(); } });
+});
+
+/* ── CSV ── */
+function baixarCsv() {
+  var linhas = [['Série', 'Cartelas', 'Comprador', 'Telefone', 'Vendedor', 'Pagamento', 'Data da venda', 'Situação']];
+  dados.series.forEach(function(s) {
+    var sit = s.situacao === 'paga' ? 'Pago' : s.situacao === 'pendente' ? 'A receber' : s.situacao === 'parcial' ? 'Parcial' : 'Disponível';
+    linhas.push([s.serie, s.cartelas.join(' '), s.comprador, s.telefone, s.vendedor, s.vendidas ? (s.paga ? 'Pago' : 'Pendente') : '', s.dataVenda, sit]);
+  });
+  var csv = '﻿' + linhas.map(function(l) {
+    return l.map(function(c) { return '"' + String(c == null ? '' : c).replace(/"/g, '""') + '"'; }).join(';');
+  }).join('\r\n');
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'vendas-por-serie-' + hoje() + '.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+/* ── versão (tela + API) ── */
+function checarVersaoApi() {
+  jsonp(API + '?acao=_ping', function(err, data) {
+    $('verInfo').textContent = 'vendas.html v' + FRONT_VERSION + ' · API: ' + (err || !data || !data.versao ? 'sem resposta' : data.versao);
+  });
+}
+
+$('fData').value = hoje();
+Acesso.exigirLogin();
+carregar();
+checarVersaoApi();
+</script>
+</body>
+</html>
