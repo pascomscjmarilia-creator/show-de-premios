@@ -196,6 +196,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
     <button class="btn btn-primary btn-full" id="loginBtn" onclick="doLogin()">
       <i class="ti ti-login"></i> Entrar
     </button>
+    <a href="index.html" style="display:block;text-align:center;margin-top:12px;font-size:13px;color:#888;text-decoration:none">← Voltar ao menu</a>
   </div>
 </div>
 
@@ -216,7 +217,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
     <span class="topbar-title">Painel Operador</span>
     <div class="topbar-links">
       <a href="datashow.html" target="_blank" class="btn btn-blue btn-sm" title="Abrir a tela principal — depois use os botões de baixo pra trocar entre Sorteio/Patrocinadores/Vídeo/Entrevista"><i class="ti ti-device-tv"></i> Abrir DataShow</a>
-      <a href="index.html" class="btn btn-ghost btn-sm" title="Página inicial"><i class="ti ti-home"></i></a>
+      <a href="index.html" class="btn btn-ghost btn-sm" id="btnMenu" onclick="return voltarAoMenu()" title="Voltar ao menu principal">🏠 Menu</a>
     </div>
     <div class="topbar-links" style="border-top:1px solid #2a2a2a;width:100%;padding-top:6px;margin-top:2px">
       <span style="font-size:11px;color:#666;align-self:center;margin-right:2px">Trocar tela em todos os aparelhos:</span>
@@ -494,7 +495,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
             <button class="btn btn-ghost" onclick="testarScript()"><i class="ti ti-plug"></i> Testar</button>
           </div>
           <div class="feedback" id="fbScript"></div>
-          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.10 · API: verificando…</div>
+          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.11 · API: verificando…</div>
         </div>
       </div>
 
@@ -984,6 +985,12 @@ function updateExpiry(at){
   const el=document.getElementById('sessionExpiry');
   el.textContent=`· Expira em ${h}h ${m}m`;
   el.style.color=h<1?'#fbbf24':'#555';
+}
+
+function voltarAoMenu(){
+  const n = (typeof called!=='undefined' && called.size) ? called.size : 0;
+  if(n>0) return confirm('O jogo está em andamento ('+n+' pedra'+(n!==1?'s':'')+' sorteada'+(n!==1?'s':'')+').\n\nSe você sair do Painel, ele perde o controle dessas pedras (o telão e o Verificador continuam mostrando). Para consultar o menu sem sair, abra-o em outra aba.\n\nSair do Painel mesmo assim?');
+  return true;
 }
 
 function doLogout(){
@@ -1586,7 +1593,7 @@ async function testarPlanilha(){
    INIT AUTH
 ══════════════════════════════════════════════════════════ */
 /* Versão do arquivo e do Apps Script (a ação desconhecida responde só { versao }) */
-const FRONT_VERSION = '1.10'; /* versão deste painel.html — atualizar a cada mudança */
+const FRONT_VERSION = '1.11'; /* versão deste painel.html — atualizar a cada mudança */
 (function(){
   _scJsonp(SCRIPT_PATROC + '?acao=_ping', function(err, data){
     const el = document.getElementById('verInfo');
