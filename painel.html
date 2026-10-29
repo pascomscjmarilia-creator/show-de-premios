@@ -351,6 +351,20 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
           </div>
         </div>
 
+        <!-- Rodada -->
+        <div class="card">
+          <div class="card-title"><i class="ti ti-flag-3"></i> Rodada em jogo</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-blue" onclick="trocarRodada(1)" id="btnRodada1" style="flex:1">1ª</button>
+            <button class="btn btn-ghost" onclick="trocarRodada(2)" id="btnRodada2" style="flex:1">2ª</button>
+            <button class="btn btn-ghost" onclick="trocarRodada(3)" id="btnRodada3" style="flex:1">3ª</button>
+            <button class="btn btn-ghost" onclick="trocarRodada(4)" id="btnRodada4" style="flex:1">4ª</button>
+          </div>
+          <div style="margin-top:8px;font-size:12px;color:#555" id="rodadaDesc">
+            1ª rodada: concorre a 1ª cartela de cada série
+          </div>
+        </div>
+
         <!-- Fase -->
         <div class="card">
           <div class="card-title"><i class="ti ti-flag"></i> Fase do Jogo</div>
@@ -458,7 +472,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
             <button class="btn btn-ghost" onclick="testarScript()"><i class="ti ti-plug"></i> Testar</button>
           </div>
           <div class="feedback" id="fbScript"></div>
-          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.5 · API: verificando…</div>
+          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.6 · API: verificando…</div>
         </div>
       </div>
 
@@ -875,6 +889,7 @@ const COLS = [
 let called   = new Set();
 let hist     = [];
 let fase     = 1;
+let rodada   = 1; /* 1 a 4: concorre a cartela de posição igual à rodada em cada série */
 let sponsors = [];
 let lastCartela = null;
 let scriptUrl   = SCRIPT_PATROC; /* script único da Pascom: cartelas, vídeos, patrocinadores */
@@ -979,7 +994,9 @@ document.addEventListener('keydown',e=>{
 /* ══════════════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════════════ */
+function restaurarRodada(){ var r=parseInt(ls('bingo_rodada'),10); setRodadaUI(r>=1&&r<=4?r:1); }
 function initGame(){
+  restaurarRodada();
   buildMiniBoard();
   renderBig(null);
   updateStats();
@@ -1144,7 +1161,7 @@ function desfazer(){
   if(hist.length) renderBig(hist[0]); else renderBig(null);
   paintMiniBoard(); updateStats(); updateHist();
   const sponsor=hist.length?(sponsors.find(s=>String(s.num)===String(hist[0]))||null):null;
-  enviarCanal('undo', { called:[...called], hist:[...hist], sponsor });
+  enviarCanal('undo', { called:[...called], hist:[...hist], sponsor, rodada });
 }
 
 function confirmarReset(){
@@ -1176,7 +1193,7 @@ function fecharModalReset(){
   fecharModalReset();
   called.clear(); hist=[];
   renderBig(null); paintMiniBoard(); updateStats(); updateHist();
-  enviarCanal('resetar', {});
+  enviarCanal('resetar', { rodada });
   /* Fallback via localStorage para abas em segundo plano */
   localStorage.setItem('bingo_reset', Date.now().toString());
 }
@@ -1185,12 +1202,47 @@ function fecharModalReset(){
    BROADCAST DRAW
 ══════════════════════════════════════════════════════════ */
 function broadcastDraw(n, sponsor){
-  enviarCanal('draw', { num:n, called:[...called], hist:[...hist], sponsor });
+  enviarCanal('draw', { num:n, called:[...called], hist:[...hist], sponsor, rodada });
 }
 
 /* ══════════════════════════════════════════════════════════
    FASE
 ══════════════════════════════════════════════════════════ */
+function setRodadaUI(r){
+  rodada=r;
+  for(let i=1;i<=4;i++){ const b=document.getElementById('btnRodada'+i); if(b) b.className='btn '+(i===r?'btn-blue':'btn-ghost'); }
+  const d=document.getElementById('rodadaDesc');
+  if(d) d.textContent=r+'ª rodada: concorre a '+r+'ª cartela de cada série. Trocar de rodada zera as pedras.';
+  ls('bingo_rodada',String(r));
+}
+function trocarRodada(r){
+  if(r===rodada) return;
+  mostrarModalRodada(r);
+}
+function mostrarModalRodada(r){
+  var antigo=document.getElementById('modalRodada'); if(antigo) antigo.remove();
+  var div=document.createElement('div');
+  div.id='modalRodada';
+  div.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center';
+  div.innerHTML='<div style="background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:28px 32px;text-align:center;max-width:360px;width:90%">'+
+    '<div style="font-size:32px;margin-bottom:12px">🏁</div>'+
+    '<div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:8px">Começar a '+r+'ª rodada?</div>'+
+    '<div style="font-size:13px;color:#888;margin-bottom:24px">As pedras sorteadas serão zeradas em todas as telas, a fase volta para Quina e o Verificador passa a conferir só a '+r+'ª cartela de cada série.</div>'+
+    '<div style="display:flex;gap:10px;justify-content:center">'+
+      '<button onclick="document.getElementById(\'modalRodada\').remove()" style="background:#333;color:#ccc;border:none;border-radius:8px;padding:10px 24px;cursor:pointer;font-size:14px">Cancelar</button>'+
+      '<button onclick="confirmarRodada('+r+')" style="background:#16a34a;color:#fff;border:none;border-radius:8px;padding:10px 24px;cursor:pointer;font-size:14px;font-weight:700">Começar</button>'+
+    '</div></div>';
+  document.body.appendChild(div);
+}
+function confirmarRodada(r){
+  var m=document.getElementById('modalRodada'); if(m) m.remove();
+  called.clear(); hist=[];
+  renderBig(null); paintMiniBoard(); updateStats(); updateHist();
+  setRodadaUI(r);
+  setFase(1);
+  enviarCanal('resetar', { rodada: r });
+  localStorage.setItem('bingo_reset', Date.now().toString());
+}
 function setFase(f){
   fase=f;
   document.getElementById('btnFase1').className='btn '+(f===1?'btn-blue':'btn-ghost');
@@ -1492,7 +1544,7 @@ async function testarPlanilha(){
    INIT AUTH
 ══════════════════════════════════════════════════════════ */
 /* Versão do arquivo e do Apps Script (a ação desconhecida responde só { versao }) */
-const FRONT_VERSION = '1.5'; /* versão deste painel.html — atualizar a cada mudança */
+const FRONT_VERSION = '1.6'; /* versão deste painel.html — atualizar a cada mudança */
 (function(){
   _scJsonp(SCRIPT_PATROC + '?acao=_ping', function(err, data){
     const el = document.getElementById('verInfo');

@@ -107,7 +107,7 @@ function htmlCartela(c, serie) {
   var cab = LETRAS.map(function(l, i) { return '<div class="h h' + i + '">' + l + '</div>'; }).join('');
   return '<div class="cartela">' +
     '<div class="cartela-cab"><span class="num">Cartela nº ' + esc(c.id) + '</span>' +
-    '<span class="pos">Série ' + esc(serie) + ' · ' + esc(c.posicao) + '/4</span></div>' +
+    '<span class="pos">Série ' + esc(serie) + ' · ' + esc(c.posicao) + 'ª rodada</span></div>' +
     '<div class="tab">' + cab + celulas + '</div></div>';
 }
 

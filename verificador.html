@@ -134,6 +134,15 @@
   .tipo-cheia { background: var(--laranja); color: white; }
   .modal .btn-fechar { display: block; width: 100%; background: var(--verde-escuro); color: white; border: none; border-radius: 8px; padding: 12px; font-size: 15px; font-weight: 600; cursor: pointer; }
   .modal .btn-fechar:hover { background: var(--verde-medio); }
+  .rodada-bar { background: #fff8e1; border-bottom: 1px solid #f0d78a; padding: 8px 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .rodada-bar > label { font-size: 12px; color: #7a5b00; font-weight: 700; }
+  .rodada-btn { border: 2px solid #c9a227; background: #fff; color: #7a5b00; font-weight: 800; border-radius: 8px; padding: 5px 14px; cursor: pointer; font-size: 14px; }
+  .rodada-btn.ativo { background: #c9a227; color: #fff; }
+  .rodada-info { font-size: 12px; color: #7a5b00; }
+  .busca-bar { padding: 8px 20px; background: #fff; border-bottom: 1px solid var(--cinza-borda); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .busca-bar input { flex: 1; min-width: 220px; max-width: 420px; padding: 7px 10px; border: 1px solid var(--cinza-borda); border-radius: 8px; font-size: 14px; }
+  .badge-fora { background: #9aa39a; color: #fff; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 8px; }
+  .cartela.fora { opacity: .6; }
   .overlay.ativo .modal { animation: entrar .3s cubic-bezier(.22,1,.36,1), pulsar 1s ease-in-out .3s infinite; }
   @keyframes pulsar { 0%,100% { box-shadow: 0 0 0 0 rgba(255,214,0,.7); } 50% { box-shadow: 0 0 0 28px rgba(255,214,0,0); } }
   /* Em tela cheia o alerta fica grande, legível de longe */
@@ -151,7 +160,7 @@
   <div>
     <h1>🎱 Verificador de Cartelas</h1>
     <div class="sub">Bingo — Quermesse Paróquia Sagrado Coração de Jesus · Marília-SP</div>
-    <div class="sub" id="verInfo" style="opacity:.5">verificador.html v1.8 · API: verificando…</div>
+    <div class="sub" id="verInfo" style="opacity:.5">verificador.html v1.9 · API: verificando…</div>
   </div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <button class="btn btn-verde" onclick="carregarCartelas()">⬇️ Carregar cartelas</button>
@@ -180,6 +189,17 @@
   <button class="btn btn-cinza" onclick="adicionarPedraManual()">Adicionar</button>
   <button class="btn btn-danger" onclick="removerUltimaPedra()" style="padding:5px 12px;">↩ Desfazer</button>
   <button class="btn btn-cinza" onclick="resetarPedras()" style="margin-left:auto">🔄 Resetar rodada</button>
+</div>
+
+<div class="rodada-bar">
+  <label>Rodada em jogo:</label>
+  <button class="rodada-btn ativo" data-r="1" onclick="escolherRodada(1)">1ª</button>
+  <button class="rodada-btn" data-r="2" onclick="escolherRodada(2)">2ª</button>
+  <button class="rodada-btn" data-r="3" onclick="escolherRodada(3)">3ª</button>
+  <button class="rodada-btn" data-r="4" onclick="escolherRodada(4)">4ª</button>
+  <button class="rodada-btn" data-r="0" onclick="escolherRodada(0)" title="Confere todas as cartelas (use se não houver séries)">Todas</button>
+  <span class="rodada-info" id="rodada-info">Concorre a 1ª cartela de cada série</span>
+  <span class="rodada-info" id="reg-status" style="margin-left:auto"></span>
 </div>
 
 <div class="modalidade-bar">
@@ -211,6 +231,11 @@
     <span id="prog-pct">0%</span>
   </div>
   <div class="progresso-trilho"><div class="progresso-fill" id="prog-fill"></div></div>
+</div>
+
+<div class="busca-bar">
+  <input type="search" id="busca" placeholder="🔍 Buscar por nº da série, nº da cartela ou nome do comprador" oninput="buscarCartelasTela(this.value)">
+  <span style="font-size:12px;color:var(--texto-mudo)" id="busca-info"></span>
 </div>
 
 <div class="filtros">
@@ -245,8 +270,12 @@
    CONFIG
 ══════════════════════════════════════════════════════ */
 var API    = 'https://script.google.com/macros/s/AKfycbxi282C_QHoo5Xm7bqinACTWwzNh9x32aWikssVJ7REoIH1lnOSucgPHslkhHvf8PSP/exec';
+var rodadaAtual = 1;     // 1 a 4 = posição da cartela que concorre; 0 = todas
+var termoBusca  = '';
+var itemAtual   = null;  // alerta em exibição (para registrar o ganhador ao confirmar)
+var registrados = 0;
 var LIMITE = 200;   // cartelas por página — ajuste conforme necessário
-var FRONT_VERSION = '1.8'; // versão deste arquivo verificador.html — atualizar a cada mudança
+var FRONT_VERSION = '1.9'; // versão deste arquivo verificador.html — atualizar a cada mudança
 
 /* ── VERSÃO (front-end + API) ── */
 function atualizarVersaoExibida(versaoApi) {
@@ -384,10 +413,88 @@ function buscarPagina(pagina) {
       /* Fim — todas as páginas carregadas */
       carregando = false;
       esconderProgresso();
+      ajustarRodadaSemSeries();
       document.getElementById('info-paginas').textContent =
         cartelas.length + ' cartelas carregadas';
     }
   });
+}
+
+/* ══════════════════════════════════════════════════════
+   RODADA EM JOGO E BUSCA
+══════════════════════════════════════════════════════ */
+/* Rodada N: concorre a cartela de posição N em cada série (0 = todas). */
+function emJogo(c) { return rodadaAtual === 0 || c.posicao === rodadaAtual; }
+
+function textoRodada(n) { return n === 0 ? 'todas as cartelas' : n + 'ª rodada'; }
+
+function casaBusca(c) {
+  var t = termoBusca.toLowerCase().replace(/^#/, '');
+  if (!t) return true;
+  if (/^\d+$/.test(t)) return String(c.id) === t || String(c.serie) === t;
+  return (c.nome || '').toLowerCase().indexOf(t) >= 0;
+}
+
+function buscarCartelasTela(v) {
+  termoBusca = String(v || '').trim();
+  renderizarCartelas();
+}
+
+/* origem: 'painel' (veio no jogo) ou 'manual' (clique no Verificador) */
+function aplicarRodada(n, origem) {
+  if (!(n >= 0 && n <= 4)) return;
+  var mudou = n !== rodadaAtual;
+  rodadaAtual = n;
+  try { localStorage.setItem('verif_rodada', String(n)); } catch (ignore) {}
+  document.querySelectorAll('.rodada-btn').forEach(function(b) {
+    b.classList.toggle('ativo', Number(b.dataset.r) === n);
+  });
+  var info = document.getElementById('rodada-info');
+  if (info) info.textContent = (n === 0 ? 'Conferindo todas as cartelas' : 'Concorre a ' + n + 'ª cartela de cada série') +
+    (origem === 'painel' ? ' · definida pelo Painel' : '');
+  if (mudou) {
+    recalcularAlertas();
+    verificarCartelas();
+    atualizarContadores();
+  }
+}
+
+function escolherRodada(n) {
+  aplicarRodada(n, 'manual');
+  /* Se o Painel estiver em outra rodada, a próxima pedra sorteada traz a rodada do Painel */
+}
+
+/* Se nenhuma cartela tem série (carga antiga), confere todas */
+function ajustarRodadaSemSeries() {
+  if (cartelas.length && !cartelas.some(function(c) { return c.posicao; }) && rodadaAtual !== 0) {
+    aplicarRodada(0, 'manual');
+    var info = document.getElementById('rodada-info');
+    if (info) info.textContent += ' · as cartelas ainda não têm série (organize no Cadastro)';
+  }
+}
+
+/* Registro do ganhador na planilha (aba Ganhadores) ao confirmar o alerta */
+function registrarGanhadorAtual() {
+  var it = itemAtual; itemAtual = null;
+  if (!it || !it.cartela) return;
+  var c = it.cartela;
+  var st = document.getElementById('reg-status');
+  jsonp(API + '?acao=registrarGanhador'
+      + '&rodada=' + (it.rodada || 0)
+      + '&fase=' + (it.tipo === 'cheia' ? 'cheia' : 'quina')
+      + '&padrao=' + encodeURIComponent(it.padrao || '')
+      + '&serie=' + (c.serie || '')
+      + '&cartela=' + c.id
+      + '&comprador=' + encodeURIComponent(c.nome || '')
+      + '&telefone=' + encodeURIComponent(c.telefone || ''),
+    function(err, data) {
+      if (err || !data || !data.sucesso) {
+        if (st) st.textContent = '⚠️ Ganhador da cartela #' + c.id + ' NÃO foi registrado (conexão). Anote.';
+        return;
+      }
+      if (!(data.dados && data.dados.duplicado)) registrados++;
+      if (st) st.textContent = '📝 ' + registrados + ' ganhador(es) registrado(s) nesta sessão';
+    });
 }
 
 /* ══════════════════════════════════════════════════════
@@ -493,6 +600,12 @@ function verificarCartelas() {
         marcadas.push(val === null || val === undefined || pedrasSorteadas.has(Number(val)));
       }
 
+    /* Fora da rodada em jogo: só guarda as casas marcadas (para a busca), sem alertar */
+    if (!emJogo(cartela)) {
+      cartela._marcadas = marcadas; cartela._temQuina = false; cartela._temCheia = false;
+      return;
+    }
+
     var m        = function(r, c) { return marcadas[r * 5 + c]; };
     var temCheia = marcadas.every(Boolean);
     var temQuina = false;
@@ -537,12 +650,16 @@ function renderizarCartelas() {
     gradeEl.innerHTML = '<div class="estado-vazio"><div class="icon">📋</div><p>Clique em "Carregar cartelas" para buscar do Google Sheets.</p></div>';
     return;
   }
-  var lista = filtroAtivo === 'quina' ? cartelas.filter(function(c) { return c._temQuina && !c._temCheia; })
-            : filtroAtivo === 'cheia' ? cartelas.filter(function(c) { return c._temCheia; })
-            : filtroAtivo === 'sem'   ? cartelas.filter(function(c) { return !c._temQuina && !c._temCheia; })
-            : cartelas;
+  var base = termoBusca ? cartelas.filter(casaBusca) : cartelas.filter(emJogo);
+  var lista = filtroAtivo === 'quina' ? base.filter(function(c) { return c._temQuina && !c._temCheia; })
+            : filtroAtivo === 'cheia' ? base.filter(function(c) { return c._temCheia; })
+            : filtroAtivo === 'sem'   ? base.filter(function(c) { return !c._temQuina && !c._temCheia; })
+            : base;
+  var bi = document.getElementById('busca-info');
+  if (bi) bi.textContent = termoBusca ? (lista.length + ' encontrada(s)') : '';
   if (!lista.length) {
-    gradeEl.innerHTML = '<div class="estado-vazio"><div class="icon">🔍</div><p>Nenhuma cartela corresponde ao filtro.</p></div>';
+    gradeEl.innerHTML = '<div class="estado-vazio"><div class="icon">🔍</div><p>' +
+      (termoBusca ? 'Nenhuma cartela encontrada para essa busca.' : 'Nenhuma cartela corresponde ao filtro.') + '</p></div>';
     return;
   }
   gradeEl.innerHTML = lista.map(renderCartela).join('');
@@ -562,7 +679,8 @@ function renderCartela(c) {
     }
   var badges = (c._temCheia ? '<span class="badge-cheia">CHEIA</span>' : '') +
                (c._temQuina && !c._temCheia ? '<span class="badge-quina">QUINA</span>' : '');
-  var cls = c._temCheia ? 'cheia' : c._temQuina ? 'quina' : '';
+  var cls = (c._temCheia ? 'cheia' : c._temQuina ? 'quina' : '') + (emJogo(c) ? '' : ' fora');
+  if (!emJogo(c)) badges += '<span class="badge-fora">FORA DA RODADA</span>';
   return '<div class="cartela ' + cls + '">' +
     '<div class="cartela-header">' +
       '<div><div class="cartela-nome">' + (c.nome || 'Sem comprador') + '</div>' +
@@ -580,9 +698,10 @@ function renderCartela(c) {
    CONTADORES & FILTROS
 ══════════════════════════════════════════════════════ */
 function atualizarContadores() {
-  document.getElementById('cnt-cartelas').textContent = cartelas.length;
-  document.getElementById('cnt-quina').textContent    = cartelas.filter(function(c) { return c._temQuina && !c._temCheia; }).length;
-  document.getElementById('cnt-cheia').textContent    = cartelas.filter(function(c) { return c._temCheia; }).length;
+  var jogo = cartelas.filter(emJogo);
+  document.getElementById('cnt-cartelas').textContent = jogo.length;
+  document.getElementById('cnt-quina').textContent    = jogo.filter(function(c) { return c._temQuina && !c._temCheia; }).length;
+  document.getElementById('cnt-cheia').textContent    = jogo.filter(function(c) { return c._temCheia; }).length;
   document.getElementById('cnt-pedras').textContent   = pedrasSorteadas.size;
 }
 
@@ -597,7 +716,7 @@ function filtrar(el) {
    ALERTAS / MODAL
 ══════════════════════════════════════════════════════ */
 function agendarAlerta(cartela, tipo, padrao) {
-  alertasFila.push({ cartela: cartela, tipo: tipo, padrao: padrao || '' });
+  alertasFila.push({ cartela: cartela, tipo: tipo, padrao: padrao || '', rodada: rodadaAtual });
   if (!alertandoAgora) mostrarProximoAlerta();
 }
 
@@ -605,9 +724,10 @@ function mostrarProximoAlerta() {
   if (!alertasFila.length) { alertandoAgora = false; return; }
   alertandoAgora = true;
   var item = alertasFila.shift(), isCheia = item.tipo === 'cheia', c = item.cartela;
+  itemAtual = item;
   document.getElementById('modal-emoji').textContent  = isCheia ? '🏆' : '⭐';
   document.getElementById('modal-titulo').textContent = isCheia ? 'CARTELA CHEIA!' : 'QUINA!';
-  document.getElementById('modal-badge').textContent  = isCheia ? 'Cartela Cheia' : 'Quina';
+  document.getElementById('modal-badge').textContent  = (isCheia ? 'Cartela Cheia' : 'Quina') + (item.rodada ? ' · ' + item.rodada + 'ª rodada' : '');
   document.getElementById('modal-badge').className    = 'tipo-badge ' + (isCheia ? 'tipo-cheia' : 'tipo-quina');
   document.getElementById('modal-info').textContent   = '#' + c.id + (c.serie ? ' (Série ' + c.serie + ')' : '') + (c.nome ? ' — ' + c.nome : '') + (!isCheia && item.padrao ? ' · ' + item.padrao : '') + (alertasFila.length ? '  (+' + alertasFila.length + ' na fila)' : '');
   document.getElementById('overlay').classList.add('ativo');
@@ -691,6 +811,7 @@ function reavaliarModalidades() {
 }
 
 function fecharModal() {
+  registrarGanhadorAtual();
   document.getElementById('overlay').classList.remove('ativo');
   if (!alertasFila.length) pararTitulo();
   setTimeout(mostrarProximoAlerta, 300);
@@ -713,6 +834,10 @@ function limparTudo() {
    Firebase (qualquer aparelho na internet/wifi). */
 function processarMensagemVerificador(d) {
   if (!d) return;
+  if (d.payload && d.payload.rodada !== undefined && (d.tipo === 'draw' || d.tipo === 'undo' || d.tipo === 'resetar')) {
+    var rp = parseInt(d.payload.rodada, 10);
+    if (rp >= 1 && rp <= 4) aplicarRodada(rp, 'painel');
+  }
   if (d.tipo === 'draw') {
     ((d.payload && d.payload.called) || []).forEach(function(n) { pedrasSorteadas.add(n); });
     renderizarPedras(d.payload && d.payload.num || null);
@@ -815,6 +940,7 @@ setTimeout(function() {
   setInterval(verificarResetPendente, 2000);
 }, 3000);
 
+(function() { try { var r = parseInt(localStorage.getItem('verif_rodada'), 10); if (r >= 0 && r <= 4) aplicarRodada(r, 'manual'); } catch (ignore) {} })();
 iniciarCanal();
 atualizarContadores();
 renderizarPedras(null);

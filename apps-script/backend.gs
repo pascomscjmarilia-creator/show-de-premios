@@ -20,6 +20,7 @@
 /* Mude a VERSAO a cada edição. Ela aparece no cadastro, no verificador e no painel
  * ("API: ..."), então dá para conferir se a nova versão foi mesmo publicada.
  * Changelog:
+ *   2.3.0 (2026-10-28) — registro de ganhadores por rodada e fase (aba "Ganhadores", criada sozinha).
  *   2.2.0 (2026-10-28) — séries: folha com 4 cartelas (colunas serie/posicao); vender por série,
  *                        gerar séries em lote, organizar cartelas existentes, listar para impressão.
  *   2.1.1 (2026-10-28) — ação pública "_info": nome da planilha ligada e nº de linhas por aba (sem dados).
@@ -27,7 +28,7 @@
  *                        pessoais. Desligado por padrão: ligue EXIGIR_TOKEN depois de testar.
  *   2.0.1 (2026-10-26) — doGet único: repassa ?action= (login) para o Auth.gs.
  *   2.0.0 (2026-10-26) — script único na planilha nova: cartelas, patrocinadores e vídeos. */
-var VERSAO = '2.2.0 (28/10/2026)';
+var VERSAO = '2.3.0 (28/10/2026)';
 
 /* ── Proteção de acesso ───────────────────────────────────────────────
  * false = tudo aberto como antes (modo de transição).
@@ -38,12 +39,14 @@ var PROTEGIDAS = {
   listarCartelas: 1, buscarCartela: 1, atualizarCartela: 1, cadastrarCartela: 1,
   cadastrarCartelasEmLote: 1, marcarSorteada: 1, resetarSorteios: 1,
   adicionarVideo: 1, removerVideo: 1,
-  buscarSerie: 1, atualizarSerie: 1, cadastrarSeriesEmLote: 1, organizarSeries: 1, listarSeries: 1
+  buscarSerie: 1, atualizarSerie: 1, cadastrarSeriesEmLote: 1, organizarSeries: 1, listarSeries: 1,
+  registrarGanhador: 1
 };
 var TOKEN_HORAS_ADMIN = 12; /* administradores não têm prazo de acesso: o token vale 12 h */
 var ABA_CARTELAS = 'Cartelas';
 var ABA_PATROCINIO = 'Lista_Patrocinio';
 var ABA_VIDEOS = 'Videos';
+var ABA_GANHADORES = 'Ganhadores';
 
 /* ───────────── entrada ───────────── */
 function doGet(e) {
@@ -70,6 +73,7 @@ function doGet(e) {
       case 'cadastrarSeriesEmLote':   out = ok(cadastrarSeriesLote_(p.quantidade)); break;
       case 'organizarSeries':         out = ok(organizarSeries_(p)); break;
       case 'listarSeries':            out = ok(listarSeries_(p)); break;
+      case 'registrarGanhador':       out = ok(registrarGanhador_(p)); break;
       case 'marcarSorteada':          out = ok(marcarSorteada_(p.id)); break;
       case 'resetarSorteios':         out = ok(resetarSorteios_()); break;
       case '_info':                   out = ok(info_()); break;
@@ -509,6 +513,40 @@ function listarSeries_(p) {
     return { serie: s, cartelas: mapa[s].sort(function (a, b) { return a.posicao - b.posicao; }) };
   });
   return { total: series.length, series: series };
+}
+
+/* ───────────── ganhadores ─────────────
+ * Cada quina ou cartela cheia confirmada no Verificador vira uma linha na aba Ganhadores
+ * (criada sozinha). Não duplica: a mesma cartela na mesma rodada e fase só entra uma vez. */
+function registrarGanhador_(p) {
+  var cartela = Number(p.cartela) || 0;
+  if (!cartela) throw new Error('Informe a cartela.');
+  var rodada = Number(p.rodada) || 0;
+  var fase = String(p.fase) === 'cheia' ? 'cheia' : 'quina';
+  return comLock_(function () {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = ss.getSheetByName(ABA_GANHADORES);
+    if (!sh) {
+      sh = ss.insertSheet(ABA_GANHADORES);
+      sh.appendRow(['data_hora', 'rodada', 'fase', 'padrao', 'serie', 'cartela', 'comprador', 'telefone', 'registrado_por']);
+      sh.setFrozenRows(1);
+    }
+    var n = sh.getLastRow() - 1;
+    if (n > 0) {
+      var v = sh.getRange(2, 1, n, 6).getValues();
+      for (var i = 0; i < v.length; i++) {
+        if (Number(v[i][1]) === rodada && String(v[i][2]) === fase && Number(v[i][5]) === cartela) return { duplicado: true };
+      }
+    }
+    var info = verificarToken_(p.token);
+    var quem = info ? '***' + String(info.c).slice(-4) : '';
+    sh.appendRow([
+      Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm:ss'),
+      rodada || '', fase, String(p.padrao || ''), Number(p.serie) || '', cartela,
+      String(p.comprador || ''), String(p.telefone || ''), quem
+    ]);
+    return { registrado: true };
+  });
 }
 
 /* ───────────── patrocinadores ───────────── */

@@ -144,6 +144,8 @@
 
   <div class="exit-hint">F = tela cheia &nbsp;·&nbsp; Esc = sair</div>
 
+<div id="rodadaBadge" style="position:fixed;top:10px;right:14px;z-index:30;display:none;background:rgba(0,0,0,.7);color:#ffd600;border:1px solid rgba(255,214,0,.55);border-radius:10px;padding:6px 16px;font-weight:800;font-size:clamp(14px,2.8vh,32px);letter-spacing:.05em;font-family:sans-serif"></div>
+
 <script>
   var COLS = [
     { l:'B', s:1,  e:15, hex:'#b91c1c', hdr:'#f87171' },
@@ -260,8 +262,16 @@
 
   /* ── Processa mensagem, venha ela do BroadcastChannel (mesmo
      computador) ou do Firebase (qualquer aparelho na rede/internet) ── */
-    function processarMensagem(d) {
+    function mostrarRodada(r) {
+    var n = parseInt(r, 10), el = document.getElementById('rodadaBadge');
+    if (!el || !(n >= 1 && n <= 4)) return;
+    el.textContent = n + 'ª RODADA';
+    el.style.display = 'block';
+  }
+
+  function processarMensagem(d) {
     if (!d) return;
+    if (d.payload && d.payload.rodada) mostrarRodada(d.payload.rodada);
     if (d.tipo === 'alerta_sirene') { Sirene.tratar(d); return; }
     if (d.tipo === 'trocar_tela') {
       var alvo = d.payload && d.payload.arquivo;
