@@ -10,6 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="firebase-config.js"></script>
+<script src="logica.js"></script>
 <script src="sirene.js"></script>
 <script src="acesso.js"></script>
 <style>
@@ -161,7 +162,7 @@
   <div>
     <h1>🎱 Verificador de Cartelas</h1>
     <div class="sub">Show de Prêmios — Quermesse Paróquia Sagrado Coração de Jesus · Marília-SP</div>
-    <div class="sub" id="verInfo" style="opacity:.5">verificador.html v1.10 · API: verificando…</div>
+    <div class="sub" id="verInfo" style="opacity:.5">verificador.html v1.11 · API: verificando…</div>
   </div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <button class="btn btn-verde" onclick="carregarCartelas()">⬇️ Carregar cartelas</button>
@@ -276,7 +277,7 @@ var termoBusca  = '';
 var itemAtual   = null;  // alerta em exibição (para registrar o ganhador ao confirmar)
 var registrados = 0;
 var LIMITE = 200;   // cartelas por página — ajuste conforme necessário
-var FRONT_VERSION = '1.10'; // versão deste arquivo verificador.html — atualizar a cada mudança
+var FRONT_VERSION = '1.11'; // versão deste arquivo verificador.html — atualizar a cada mudança
 
 /* ── VERSÃO (front-end + API) ── */
 function atualizarVersaoExibida(versaoApi) {
@@ -594,37 +595,14 @@ function verificarCartelas() {
     var g = cartela.grade;
     if (!g || !g.length) return;
 
-    var marcadas = [];
-    for (var r = 0; r < 5; r++)
-      for (var c = 0; c < 5; c++) {
-        var val = g[r] ? g[r][c] : undefined;
-        marcadas.push(val === null || val === undefined || pedrasSorteadas.has(Number(val)));
-      }
+    var av = Logica.avaliarCartela(g, pedrasSorteadas, mod);
+    var marcadas = av.marcadas, temQuina = av.temQuina, temCheia = av.temCheia, padrao = av.padrao;
 
     /* Fora da rodada em jogo: só guarda as casas marcadas (para a busca), sem alertar */
     if (!emJogo(cartela)) {
       cartela._marcadas = marcadas; cartela._temQuina = false; cartela._temCheia = false;
       return;
     }
-
-    var m        = function(r, c) { return marcadas[r * 5 + c]; };
-    var temCheia = marcadas.every(Boolean);
-    var temQuina = false;
-
-    var padrao = '';
-
-    if (mod.linha) {
-      for (var r = 0; r < 5 && !temQuina; r++)
-        if ([0,1,2,3,4].every(function(c) { return m(r,c); })) { temQuina = true; padrao = 'Linha ' + (r + 1) + ' (horizontal)'; }
-      for (var c = 0; c < 5 && !temQuina; c++)
-        if ([0,1,2,3,4].every(function(r) { return m(r,c); })) { temQuina = true; padrao = 'Coluna ' + 'BINGO'.charAt(c) + ' (vertical)'; }
-    }
-    if (!temQuina && mod.diagonal) {
-      if ([0,1,2,3,4].every(function(i) { return m(i,i);   })) { temQuina = true; padrao = 'Diagonal'; }
-      else if ([0,1,2,3,4].every(function(i) { return m(i,4-i); })) { temQuina = true; padrao = 'Diagonal'; }
-    }
-    if (!temQuina && mod.cantos)
-      if (m(0,0) && m(0,4) && m(4,0) && m(4,4)) { temQuina = true; padrao = '4 cantos'; }
 
     if (temCheia && !cartela.cheiaJaAlertada) {
       cartela.cheiaJaAlertada = true; cartela.quinaJaAlertada = true;
