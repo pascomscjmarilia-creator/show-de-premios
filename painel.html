@@ -424,6 +424,10 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
             Não repetir o mesmo comprador (quem já ganhou não concorre de novo)
           </label>
           <div style="font-size:12px;color:#777;margin-top:6px" id="scStatusMsg"></div>
+          <div class="field" style="margin-top:10px">
+            <label for="scPremio" style="font-size:12px;color:#aaa">Prêmio deste sorteio (opcional — fica registrado com o ganhador)</label>
+            <input type="text" id="scPremio" maxlength="80" placeholder="Ex.: Cesta de café, TV 32&quot;…" autocomplete="off">
+          </div>
 
           <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn btn-primary btn-sortear" style="flex:1" onclick="sortearCartela()" id="btnSortearCartela">
@@ -496,7 +500,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
             <button class="btn btn-ghost" onclick="testarScript()"><i class="ti ti-plug"></i> Testar</button>
           </div>
           <div class="feedback" id="fbScript"></div>
-          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.12 · API: verificando…</div>
+          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.13 · API: verificando…</div>
         </div>
       </div>
 
@@ -1447,7 +1451,25 @@ function sortearCartela(){
     _sc.historico.unshift({ serie:n, comprador:serie.comprador, telefone:serie.telefone, hora:new Date().toLocaleTimeString('pt-BR') });
     _scRenderHistorico();
     _scRecalcular();
-    fb('fbCartela','ok','Série '+n+' sorteada e registrada!');
+    fb('fbCartela','ok','Série '+n+' sorteada. Registrando o ganhador…');
+    registrarSorteio(serie);
+  });
+}
+
+/* Guarda a série sorteada na aba Ganhadores (a tela Ganhadores lista tudo) */
+function registrarSorteio(serie){
+  const premio = (document.getElementById('scPremio').value || '').trim();
+  _sc.historico[0].premio = premio; _scRenderHistorico();
+  _scJsonp(scriptUrl + '?acao=registrarGanhador&fase=sorteio&serie=' + serie.serie
+      + '&cartela=' + encodeURIComponent(serie.cartelas.join(' · '))
+      + '&comprador=' + encodeURIComponent(serie.comprador || '')
+      + '&telefone=' + encodeURIComponent(serie.telefone || '')
+      + '&premio=' + encodeURIComponent(premio), function(err, data){
+    if(err || !data || !data.sucesso){
+      fb('fbCartela','warn','Série '+serie.serie+' sorteada, mas o registro NÃO foi salvo (conexão). Anote o ganhador.');
+      return;
+    }
+    fb('fbCartela','ok','Série '+serie.serie+' sorteada e registrada!');
   });
 }
 
@@ -1502,7 +1524,7 @@ function _scRenderHistorico(){
   el.innerHTML = _sc.historico.map(h=>`
     <tr>
       <td style="font-size:16px;font-weight:900;color:#fbbf24;padding:6px 10px">Série ${h.serie}</td>
-      <td style="color:#e5e5e5;padding:6px 10px">${h.comprador||'—'}</td>
+      <td style="color:#e5e5e5;padding:6px 10px">${h.comprador||'—'}${h.premio?' <span style="color:#fbbf24">· 🎁 '+String(h.premio).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))+'</span>':''}</td>
       <td style="color:#888;padding:6px 10px">${h.telefone||'—'}</td>
       <td style="color:#555;padding:6px 10px">${h.hora}</td>
     </tr>`).join('');
@@ -1610,7 +1632,7 @@ async function testarPlanilha(){
    INIT AUTH
 ══════════════════════════════════════════════════════════ */
 /* Versão do arquivo e do Apps Script (a ação desconhecida responde só { versao }) */
-const FRONT_VERSION = '1.12'; /* versão deste painel.html — atualizar a cada mudança */
+const FRONT_VERSION = '1.13'; /* versão deste painel.html — atualizar a cada mudança */
 (function(){
   _scJsonp(SCRIPT_PATROC + '?acao=_ping', function(err, data){
     const el = document.getElementById('verInfo');

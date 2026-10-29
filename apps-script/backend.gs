@@ -20,6 +20,7 @@
 /* Mude a VERSAO a cada edição. Ela aparece no cadastro, no verificador e no painel
  * ("API: ..."), então dá para conferir se a nova versão foi mesmo publicada.
  * Changelog:
+ *   2.6.0 (2026-10-29) — ganhadores: o sorteio de séries também é registrado (fase "sorteio", com prêmio) e listarGanhadores alimenta a tela ganhadores.html.
  *   2.5.0 (2026-10-29) — sorteio por série: marcarSerieSorteada (marca as 4 cartelas) e "sorteada" na lista de séries.
  *   2.4.0 (2026-10-29) — vendas por série: listar (uma linha por série), vender várias séries de uma vez,
  *                        liberar série, coluna vendedor.
@@ -31,7 +32,7 @@
  *                        pessoais. Desligado por padrão: ligue EXIGIR_TOKEN depois de testar.
  *   2.0.1 (2026-10-26) — doGet único: repassa ?action= (login) para o Auth.gs.
  *   2.0.0 (2026-10-26) — script único na planilha nova: cartelas, patrocinadores e vídeos. */
-var VERSAO = '2.5.0 (29/10/2026)';
+var VERSAO = '2.6.0 (29/10/2026)';
 
 /* ── Proteção de acesso ───────────────────────────────────────────────
  * false = tudo aberto como antes (modo de transição).
@@ -43,7 +44,7 @@ var PROTEGIDAS = {
   cadastrarCartelasEmLote: 1, marcarSorteada: 1, resetarSorteios: 1,
   adicionarVideo: 1, removerVideo: 1,
   buscarSerie: 1, atualizarSerie: 1, cadastrarSeriesEmLote: 1, organizarSeries: 1, listarSeries: 1,
-  registrarGanhador: 1, listarVendas: 1, liberarSerie: 1, marcarSerieSorteada: 1
+  registrarGanhador: 1, listarVendas: 1, liberarSerie: 1, marcarSerieSorteada: 1, listarGanhadores: 1
 };
 var TOKEN_HORAS_ADMIN = 12; /* administradores não têm prazo de acesso: o token vale 12 h */
 var ABA_CARTELAS = 'Cartelas';
@@ -77,6 +78,7 @@ function doGet(e) {
       case 'organizarSeries':         out = ok(organizarSeries_(p)); break;
       case 'listarSeries':            out = ok(listarSeries_(p)); break;
       case 'registrarGanhador':       out = ok(registrarGanhador_(p)); break;
+      case 'listarGanhadores':        out = ok(listarGanhadores_()); break;
       case 'listarVendas':            out = ok(listarVendas_()); break;
       case 'liberarSerie':            out = ok(liberarSerie_(p)); break;
       case 'marcarSerieSorteada':     out = ok(marcarSerieSorteada_(p.serie)); break;
@@ -659,23 +661,36 @@ function listarSeries_(p) {
 }
 
 /* ───────────── ganhadores ─────────────
- * Cada quina ou cartela cheia confirmada no Verificador vira uma linha na aba Ganhadores
- * (criada sozinha). Não duplica: a mesma cartela na mesma rodada e fase só entra uma vez. */
+ * Cada quina ou cartela cheia confirmada no Verificador, e cada série sorteada no Painel, vira
+ * uma linha na aba Ganhadores (criada sozinha). Quina/cheia não duplicam: a mesma cartela na
+ * mesma rodada e fase só entra uma vez. Sorteio: fase "sorteio", coluna "cartela" com a lista das 4 cartelas. */
+var COLUNAS_GANHADORES = ['data_hora', 'rodada', 'fase', 'padrao', 'serie', 'cartela', 'comprador', 'telefone', 'registrado_por', 'premio'];
+
+function abaGanhadores_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(ABA_GANHADORES);
+  if (!sh) {
+    sh = ss.insertSheet(ABA_GANHADORES);
+    sh.appendRow(COLUNAS_GANHADORES);
+    sh.setFrozenRows(1);
+    return sh;
+  }
+  /* abas criadas na versão anterior não têm a coluna "premio" */
+  var cab = sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getValues()[0];
+  if (cab.indexOf('premio') < 0) sh.getRange(1, COLUNAS_GANHADORES.length).setValue('premio');
+  return sh;
+}
+
 function registrarGanhador_(p) {
-  var cartela = Number(p.cartela) || 0;
-  if (!cartela) throw new Error('Informe a cartela.');
+  var fase = String(p.fase) === 'cheia' ? 'cheia' : String(p.fase) === 'sorteio' ? 'sorteio' : 'quina';
+  var cartela = fase === 'sorteio' ? String(p.cartela || '') : (Number(p.cartela) || 0);
+  if (fase === 'sorteio') { if (!Number(p.serie)) throw new Error('Informe a série.'); }
+  else if (!cartela) throw new Error('Informe a cartela.');
   var rodada = Number(p.rodada) || 0;
-  var fase = String(p.fase) === 'cheia' ? 'cheia' : 'quina';
   return comLock_(function () {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sh = ss.getSheetByName(ABA_GANHADORES);
-    if (!sh) {
-      sh = ss.insertSheet(ABA_GANHADORES);
-      sh.appendRow(['data_hora', 'rodada', 'fase', 'padrao', 'serie', 'cartela', 'comprador', 'telefone', 'registrado_por']);
-      sh.setFrozenRows(1);
-    }
+    var sh = abaGanhadores_();
     var n = sh.getLastRow() - 1;
-    if (n > 0) {
+    if (n > 0 && fase !== 'sorteio') {
       var v = sh.getRange(2, 1, n, 6).getValues();
       for (var i = 0; i < v.length; i++) {
         if (Number(v[i][1]) === rodada && String(v[i][2]) === fase && Number(v[i][5]) === cartela) return { duplicado: true };
@@ -686,10 +701,33 @@ function registrarGanhador_(p) {
     sh.appendRow([
       Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm:ss'),
       rodada || '', fase, String(p.padrao || ''), Number(p.serie) || '', cartela,
-      String(p.comprador || ''), String(p.telefone || ''), quem
+      String(p.comprador || ''), String(p.telefone || ''), quem, String(p.premio || '')
     ]);
     return { registrado: true };
   });
+}
+
+/* Lista para a tela de ganhadores (mais recentes primeiro). Lê o texto como aparece na planilha. */
+function listarGanhadores_() {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ABA_GANHADORES);
+  if (!sh || sh.getLastRow() < 2) return { total: 0, ganhadores: [] };
+  var cab = sh.getRange(1, 1, 1, sh.getLastColumn()).getDisplayValues()[0];
+  var linhas = sh.getRange(2, 1, sh.getLastRow() - 1, sh.getLastColumn()).getDisplayValues();
+  var ix = {};
+  cab.forEach(function (nome, i) { ix[String(nome).trim()] = i; });
+  var get = function (l, k) { return ix[k] === undefined ? '' : String(l[ix[k]]).trim(); };
+  var lista = [];
+  linhas.forEach(function (l, i) {
+    if (!get(l, 'fase') && !get(l, 'serie') && !get(l, 'cartela')) return;
+    lista.push({
+      linha: i + 2, dataHora: get(l, 'data_hora'), rodada: Number(get(l, 'rodada')) || 0,
+      fase: get(l, 'fase'), padrao: get(l, 'padrao'), serie: Number(get(l, 'serie')) || 0,
+      cartela: get(l, 'cartela'), comprador: get(l, 'comprador'), telefone: get(l, 'telefone'),
+      premio: get(l, 'premio')
+    });
+  });
+  lista.reverse();
+  return { total: lista.length, ganhadores: lista };
 }
 
 /* ───────────── patrocinadores ───────────── */

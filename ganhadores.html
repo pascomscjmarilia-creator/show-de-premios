@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ganhadores — Show de Prêmios</title>
+<!-- ganhadores.html — Versão 1.0
+     Lista os ganhadores gravados na aba "Ganhadores": quinas e cartelas cheias confirmadas no Verificador
+     e séries sorteadas no Painel. Busca, filtros, CSV e modo de apresentação em tela cheia. Pede login. -->
+<script src="acesso.js"></script>
+<style>
+  :root { --verde-escuro:#0A3D1A; --verde-medio:#1A6B30; --verde-claro:#A8E063; --borda:#d5dfc7; --txt:#1f2a1f; --mudo:#667; --ouro:#b7791f; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Segoe UI',Arial,sans-serif; background:#f3f6ee; color:var(--txt); }
+  header { background:var(--verde-escuro); color:#fff; padding:12px 20px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  header h1 { margin:0; font-size:18px; color:var(--verde-claro); }
+  header .sub { font-size:11px; color:rgba(255,255,255,.55); }
+  header a { margin-left:auto; color:#cfe8b6; text-decoration:none; font-size:20px; }
+  main { max-width:1150px; margin:0 auto; padding:16px; }
+  .metricas { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:14px; }
+  .metrica { background:#fff; border:1px solid var(--borda); border-radius:10px; padding:10px 14px; }
+  .metrica .n { font-size:24px; font-weight:700; color:var(--verde-escuro); }
+  .metrica .l { font-size:12px; color:var(--mudo); }
+  .barra { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px; }
+  .barra input[type=search] { flex:1; min-width:220px; padding:9px 12px; border:1px solid var(--borda); border-radius:8px; font-size:14px; }
+  .barra select { padding:8px 10px; border:1px solid var(--borda); border-radius:8px; font-size:14px; background:#fff; }
+  .chip { border:1px solid #b9c9a5; background:#fff; border-radius:999px; padding:6px 14px; font-size:13px; cursor:pointer; color:#33442f; }
+  .chip.on { background:var(--verde-medio); color:#fff; border-color:var(--verde-medio); }
+  .btn { border:0; border-radius:8px; padding:9px 16px; font-weight:600; cursor:pointer; font-size:14px; background:var(--verde-medio); color:#fff; }
+  .btn.sec { background:#e5efd9; color:var(--verde-escuro); }
+  .tabela-wrap { background:#fff; border:1px solid var(--borda); border-radius:10px; overflow:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  thead th { position:sticky; top:0; background:#f1f6ea; text-align:left; padding:8px 10px; font-weight:600; color:#44553f; border-bottom:1px solid var(--borda); white-space:nowrap; }
+  td { padding:8px 10px; border-bottom:1px solid #edf1e6; vertical-align:top; }
+  .tag { font-size:12px; padding:2px 9px; border-radius:7px; white-space:nowrap; font-weight:600; }
+  .t-quina { background:#fdf0d3; color:#7a5200; } .t-cheia { background:#ffe3cc; color:#8a3b00; } .t-sorteio { background:#e0e9fb; color:#1c3f8f; }
+  .mudo { color:#9aa; }
+  #msg { margin:10px 0; font-size:13px; min-height:18px; color:var(--mudo); }
+  #msg.erro { color:#a32d2d; }
+
+  /* ── Apresentação (tela cheia) ── */
+  #apres { position:fixed; inset:0; z-index:50; background:radial-gradient(circle at 50% 0%, #14532d, #052e16 70%); color:#fff; display:none; flex-direction:column; }
+  #apres.on { display:flex; }
+  #apres .topo { display:flex; align-items:center; gap:16px; padding:2.2vh 3vw; }
+  #apres h2 { margin:0; font-size:clamp(22px,4.2vh,56px); color:#fde68a; letter-spacing:.04em; }
+  #apres .fecha { margin-left:auto; background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.25); border-radius:10px; padding:8px 16px; cursor:pointer; font-size:15px; }
+  #apres .lista { flex:1; overflow:hidden; padding:0 3vw 3vh; display:grid; gap:1.6vh 1.6vw; grid-template-columns:repeat(auto-fill,minmax(min(100%,26vw),1fr)); align-content:start; }
+  .gcard { background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); border-radius:16px; padding:1.8vh 1.6vw; }
+  .gcard .tipo { font-size:clamp(12px,1.9vh,22px); font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#fde68a; }
+  .gcard .nome { font-size:clamp(20px,3.8vh,52px); font-weight:800; margin:.5vh 0; line-height:1.1; }
+  .gcard .det { font-size:clamp(13px,2.2vh,28px); color:#d1fae5; }
+  .gcard .premio { margin-top:.6vh; font-size:clamp(14px,2.4vh,30px); color:#fcd34d; font-weight:700; }
+  #apres .vazio { grid-column:1/-1; text-align:center; font-size:clamp(18px,3vh,36px); color:#9ca3af; padding-top:10vh; }
+  #apres .rodape { padding:1vh 3vw 2vh; font-size:12px; color:rgba(255,255,255,.45); }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🏆 Ganhadores</h1>
+    <div class="sub" id="verInfo">ganhadores.html v1.0 · API: verificando…</div>
+  </div>
+  <a href="index.html" title="Voltar para a tela principal">🏠</a>
+</header>
+
+<main>
+  <div class="metricas">
+    <div class="metrica"><div class="n" id="m-total">0</div><div class="l">Ganhadores</div></div>
+    <div class="metrica"><div class="n" id="m-quina">0</div><div class="l">Quinas</div></div>
+    <div class="metrica"><div class="n" id="m-cheia">0</div><div class="l">Cartelas cheias</div></div>
+    <div class="metrica"><div class="n" id="m-sorteio">0</div><div class="l">Séries sorteadas</div></div>
+  </div>
+
+  <div class="barra">
+    <input type="search" id="busca" placeholder="🔍 Buscar nome, série, cartela, telefone ou prêmio" oninput="desenhar()">
+    <select id="fRodada" onchange="desenhar()" title="Rodada">
+      <option value="0">Todas as rodadas</option>
+      <option value="1">1ª rodada</option><option value="2">2ª rodada</option>
+      <option value="3">3ª rodada</option><option value="4">4ª rodada</option>
+    </select>
+    <button class="chip on" data-f="todos"   onclick="filtrar(this)">Todos</button>
+    <button class="chip"    data-f="quina"   onclick="filtrar(this)">Quina</button>
+    <button class="chip"    data-f="cheia"   onclick="filtrar(this)">Cartela cheia</button>
+    <button class="chip"    data-f="sorteio" onclick="filtrar(this)">Sorteio de série</button>
+  </div>
+  <div class="barra">
+    <button class="btn" onclick="abrirApresentacao()">📺 Apresentar em tela cheia</button>
+    <button class="btn sec" onclick="carregar()">🔄 Atualizar</button>
+    <button class="btn sec" onclick="baixarCsv()">⬇️ Baixar lista (CSV)</button>
+  </div>
+
+  <div class="tabela-wrap">
+    <table>
+      <thead><tr><th>Data e hora</th><th>Tipo</th><th>Rodada</th><th>Série</th><th>Cartela(s)</th><th>Ganhador</th><th>Telefone</th><th>Prêmio</th></tr></thead>
+      <tbody id="corpo"><tr><td colspan="8" class="mudo">Carregando…</td></tr></tbody>
+    </table>
+  </div>
+  <div id="msg"></div>
+</main>
+
+<!-- Apresentação -->
+<div id="apres">
+  <div class="topo"><h2 id="apresTitulo">🏆 Ganhadores</h2><button class="fecha" onclick="fecharApresentacao()">✕ Fechar (Esc)</button></div>
+  <div class="lista" id="apresLista"></div>
+  <div class="rodape">O telefone não aparece nesta tela. Atualiza sozinha a cada 20 segundos.</div>
+</div>
+
+<script src="ganhadores-lib.js"></script>
+<script>
+var API = Acesso.authUrl;
+var FRONT_VERSION = '1.0'; // versão deste arquivo ganhadores.html — atualizar a cada mudança
+var todos = [];
+var filtro = 'todos';
+var timerApres = null;
+
+function $(id) { return document.getElementById(id); }
+var esc = Ganhadores.esc;
+
+/* ── JSONP com token (pede login quando o servidor recusar) ── */
+function jsonp(url, cb) {
+  var id  = '_cb' + Date.now() + (Math.random() * 9999 | 0);
+  var tag = document.createElement('script');
+  window[id] = function(data) {
+    try { delete window[id]; } catch(e) { window[id] = void 0; }
+    tag.parentNode && tag.parentNode.removeChild(tag);
+    if (Acesso.negado(data)) { Acesso.pedirLogin(function() { jsonp(url, cb); }); return; }
+    cb(null, data);
+  };
+  tag.onerror = function() {
+    try { delete window[id]; } catch(e) { window[id] = void 0; }
+    tag.parentNode && tag.parentNode.removeChild(tag);
+    cb(new Error('Erro de rede'));
+  };
+  tag.src = Acesso.comToken(url) + '&callback=' + id + '&_=' + Date.now();
+  document.head.appendChild(tag);
+}
+
+function msg(t, erro) { $('msg').textContent = t || ''; $('msg').className = erro ? 'erro' : ''; }
+
+function carregar(silencioso) {
+  if (!silencioso) msg('Carregando…');
+  jsonp(API + '?acao=listarGanhadores', function(err, data) {
+    if (err || !data || !data.sucesso) {
+      msg((data && data.dados && data.dados.mensagem) || (err && err.message) || 'Não foi possível carregar.', true);
+      return;
+    }
+    if (!data.dados || !data.dados.ganhadores) { msg('O servidor ainda está na versão antiga. Publique o backend 2.6.0 (Nova versão) e atualize.', true); return; }
+    todos = data.dados.ganhadores;
+    msg('');
+    desenhar();
+  });
+}
+
+function filtrar(el) {
+  filtro = el.getAttribute('data-f');
+  document.querySelectorAll('.chip').forEach(function(c) { c.classList.toggle('on', c === el); });
+  desenhar();
+}
+
+function visiveis() {
+  return Ganhadores.filtrar(todos, { fase: filtro, rodada: Number($('fRodada').value) || 0, busca: $('busca').value });
+}
+
+function desenhar() {
+  var q = Ganhadores.contar(todos);
+  $('m-total').textContent = q.total; $('m-quina').textContent = q.quina;
+  $('m-cheia').textContent = q.cheia; $('m-sorteio').textContent = q.sorteio;
+  var lista = visiveis();
+  $('corpo').innerHTML = lista.length ? lista.map(function(g) {
+    return '<tr><td>' + esc(g.dataHora) + '</td>'
+      + '<td><span class="tag t-' + esc(Ganhadores.classe(g.fase)) + '">' + esc(Ganhadores.rotuloFase(g.fase)) + '</span>'
+      + (g.padrao ? '<div class="mudo">' + esc(g.padrao) + '</div>' : '') + '</td>'
+      + '<td>' + (g.rodada ? g.rodada + 'ª' : '<span class="mudo">—</span>') + '</td>'
+      + '<td>' + (g.serie || '<span class="mudo">—</span>') + '</td>'
+      + '<td>' + esc(g.cartela) + '</td>'
+      + '<td><b>' + esc(g.comprador || 'Sem comprador lançado') + '</b></td>'
+      + '<td>' + esc(g.telefone) + '</td>'
+      + '<td>' + esc(g.premio) + '</td></tr>';
+  }).join('') : '<tr><td colspan="8" class="mudo">' + (todos.length ? 'Nenhum ganhador com esse filtro.' : 'Nenhum ganhador registrado ainda.') + '</td></tr>';
+  if ($('apres').classList.contains('on')) desenharApresentacao();
+}
+
+/* ── Apresentação ── */
+function desenharApresentacao() {
+  var lista = visiveis();
+  $('apresTitulo').textContent = '🏆 ' + Ganhadores.tituloApresentacao(filtro, Number($('fRodada').value) || 0);
+  $('apresLista').innerHTML = lista.length ? lista.map(function(g) {
+    return '<div class="gcard"><div class="tipo">' + esc(Ganhadores.rotuloFase(g.fase))
+      + (g.rodada ? ' · ' + g.rodada + 'ª rodada' : '') + '</div>'
+      + '<div class="nome">' + esc(g.comprador || 'Série ' + g.serie) + '</div>'
+      + '<div class="det">' + (g.serie ? 'Série ' + esc(g.serie) + ' · ' : '') + 'Cartela ' + esc(g.cartela) + (g.padrao ? ' · ' + esc(g.padrao) : '') + '</div>'
+      + (g.premio ? '<div class="premio">🎁 ' + esc(g.premio) + '</div>' : '') + '</div>';
+  }).join('') : '<div class="vazio">Nenhum ganhador registrado ainda.</div>';
+}
+function abrirApresentacao() {
+  $('apres').classList.add('on');
+  desenharApresentacao();
+  try { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); } catch(e) {}
+  clearInterval(timerApres);
+  timerApres = setInterval(function() { carregar(true); }, 20000);
+}
+function fecharApresentacao() {
+  $('apres').classList.remove('on');
+  clearInterval(timerApres);
+  try { if (document.fullscreenElement) document.exitFullscreen(); } catch(e) {}
+}
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && $('apres').classList.contains('on')) fecharApresentacao(); });
+
+function baixarCsv() {
+  var csv = '﻿' + Ganhadores.paraCsv(visiveis());
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'ganhadores-' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+}
+
+/* ── versão (tela + API) ── */
+function checarVersaoApi() {
+  jsonp(API + '?acao=_ping', function(err, data) {
+    $('verInfo').textContent = 'ganhadores.html v' + FRONT_VERSION + ' · API: ' + (err || !data || !data.versao ? 'sem resposta' : data.versao);
+  });
+}
+
+Acesso.exigirLogin();
+carregar();
+checarVersaoApi();
+</script>
+</body>
+</html>
