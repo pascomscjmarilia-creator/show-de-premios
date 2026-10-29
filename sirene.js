@@ -97,7 +97,40 @@
     atualizarAviso();
   });
 
+  /* Diagnóstico das telas do telão: guarda a última troca de tela (de onde, para onde, por qual canal)
+     e mostra tudo isso ao apertar a tecla D. Serve para descobrir por que uma tela mudou sozinha. */
+  var VERSAO_TELAO = '2026-10-29c';
+  function registrarTroca(de, para, msg) {
+    try {
+      localStorage.setItem('telao_ultima_troca', JSON.stringify({
+        de: de, para: para, em: new Date().toLocaleString('pt-BR'),
+        via: msg && msg.ts ? 'Firebase (mensagem enviada às ' + new Date(msg.ts).toLocaleTimeString('pt-BR') + ')' : 'canal do navegador (outra aba deste computador)'
+      }));
+    } catch (e) {}
+  }
+  function mostrarDiagnostico() {
+    var antigo = document.getElementById('telao-diag');
+    if (antigo) { antigo.remove(); return; }
+    var ult = null;
+    try { ult = JSON.parse(localStorage.getItem('telao_ultima_troca') || 'null'); } catch (e) {}
+    var d = document.createElement('div');
+    d.id = 'telao-diag';
+    d.style.cssText = 'position:fixed;left:12px;top:12px;z-index:2147483647;background:rgba(0,0,0,.88);color:#fff;font:14px/1.5 Consolas,monospace;padding:12px 16px;border:1px solid #ffd600;border-radius:10px;max-width:90vw';
+    d.innerHTML = '<b style="color:#ffd600">Diagnóstico da tela</b> (aperte D para fechar)<br>' +
+      'Tela: ' + (location.pathname.split('/').pop() || 'index.html') + '<br>' +
+      'Versão do telão: ' + VERSAO_TELAO + '<br>' +
+      'Som: ' + (ctx && ctx.state === 'running' ? 'liberado' : 'bloqueado') + '<br>' +
+      (ult ? 'Última troca de tela: ' + ult.de + ' → ' + ult.para + '<br>Quando: ' + ult.em + '<br>Por: ' + ult.via : 'Nenhuma troca de tela registrada neste aparelho.');
+    document.body.appendChild(d);
+  }
+  document.addEventListener('keydown', function (e) {
+    var t = e.target && e.target.tagName;
+    if (t === 'INPUT' || t === 'TEXTAREA' || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === 'd' || e.key === 'D') mostrarDiagnostico();
+  });
+
   window.Sirene = {
+    registrarTroca: registrarTroca,
     liberar: liberar, tocar: tocar, tratar: tratar, duracaoDe: duracaoDe,
     novaMensagem: novaMensagem,
     pronta: function () { return !!ctx && ctx.state === 'running'; }

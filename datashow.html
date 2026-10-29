@@ -277,7 +277,7 @@
     if (d.tipo === 'trocar_tela') {
       var alvo = d.payload && d.payload.arquivo;
       var atual = location.pathname.split('/').pop() || 'index.html';
-      if (alvo && alvo !== atual) location.href = alvo;
+      if (alvo && alvo !== atual) { if (window.Sirene && Sirene.registrarTroca) Sirene.registrarTroca(atual, alvo, d); location.href = alvo; }
       return;
     }
 

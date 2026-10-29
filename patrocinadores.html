@@ -448,7 +448,8 @@ function startLoop() {
 function loadPats() {
   jsonp(CFG.SCRIPT_URL + '?acao=listarPatrocinios', function(err, data) {
     if (err || !data || !data.sucesso) {
-      showStatus('Erro ao carregar. Tentando em 30s…');
+      /* Se já há patrocinadores na tela, uma falha passageira não apaga o cartão: tenta de novo em silêncio. */
+      if (!state.pats.length) showStatus('Erro ao carregar. Tentando em 30s…');
       setTimeout(loadPats, 30000);
       return;
     }
@@ -462,11 +463,15 @@ function loadPats() {
 
     if (!lista.length) { showStatus('Nenhum patrocinador encontrado.'); return; }
 
+    var json = JSON.stringify(lista);
+    if (state.listaJson === json) return;          // nada mudou: não mexe na tela
+    var primeira = !state.pats.length;
     var curId = state.pats[state.patIdx] && state.pats[state.patIdx].id;
+    state.listaJson = json;
     state.pats = lista;
     var same = lista.findIndex(function(r) { return r.id === curId; });
     state.patIdx = same >= 0 ? same : 0;
-    startLoop();
+    if (primeira) startLoop();                      // só a primeira carga (re)inicia o ciclo; mudanças depois entram sem reiniciar o cartão
   });
 }
 /* ══════════════════════════════════════════════════════════════════
@@ -478,7 +483,7 @@ function loadPats() {
     if (d.tipo === 'trocar_tela') {
       var alvo = d.payload && d.payload.arquivo;
       var atual = location.pathname.split('/').pop() || 'index.html';
-      if (alvo && alvo !== atual) location.href = alvo;
+      if (alvo && alvo !== atual) { if (window.Sirene && Sirene.registrarTroca) Sirene.registrarTroca(atual, alvo, d); location.href = alvo; }
       return;
     }
   if (d.tipo === 'sponsors' && Array.isArray(d.payload) && d.payload.length) {
