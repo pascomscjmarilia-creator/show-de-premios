@@ -114,8 +114,11 @@ try {
     if (!user || _fbJaConfigurado) return;
     _fbJaConfigurado = true;
     var _fbUltimoTsEntrevista = null;
+    var _fbPrimeira = true;
     firebase.database().ref('bingo/ultimaMensagem').on('value', function(snap) {
       var d = snap.val();
+      /* A primeira leitura é só o estado guardado (ex.: uma troca de tela antiga). Não é um comando novo: só memoriza. */
+      if (_fbPrimeira) { _fbPrimeira = false; _fbUltimoTsEntrevista = d && d.ts; return; }
       if (!d || d.ts === _fbUltimoTsEntrevista) return;
       _fbUltimoTsEntrevista = d.ts;
       processarMensagemEntrevista(d);
