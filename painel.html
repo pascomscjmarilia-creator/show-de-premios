@@ -407,12 +407,17 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
 
           <!-- Contador -->
           <div class="stats-row" id="cartelaStats">
-            <div class="stat-box"><div class="stat-num" id="ctTotal" style="color:#888">—</div><div class="stat-label">Séries vendidas</div></div>
+            <div class="stat-box"><div class="stat-num" id="ctTotal" style="color:#888">—</div><div class="stat-label">No sorteio</div></div>
             <div class="stat-box"><div class="stat-num" id="ctDisp" style="color:#4ade80">—</div><div class="stat-label">Concorrendo</div></div>
             <div class="stat-box"><div class="stat-num" id="ctSort" style="color:#fbbf24">—</div><div class="stat-label">Sorteadas</div></div>
           </div>
 
-          <label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:13px;color:#aaa;cursor:pointer">
+          <div style="display:flex;gap:16px;align-items:center;margin-top:12px;font-size:13px;color:#aaa;flex-wrap:wrap">
+            <span>Concorrem:</span>
+            <label style="cursor:pointer"><input type="radio" name="scModo" value="todas" checked onchange="_scMudarModo()"> Todas as séries</label>
+            <label style="cursor:pointer"><input type="radio" name="scModo" value="vendidas" onchange="_scMudarModo()"> Só as vendidas</label>
+          </div>
+          <label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-size:13px;color:#aaa;cursor:pointer">
             <input type="checkbox" id="scNaoRepetir" checked onchange="_scRecalcular()">
             Não repetir o mesmo comprador (quem já ganhou não concorre de novo)
           </label>
@@ -489,7 +494,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
             <button class="btn btn-ghost" onclick="testarScript()"><i class="ti ti-plug"></i> Testar</button>
           </div>
           <div class="feedback" id="fbScript"></div>
-          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.9 · API: verificando…</div>
+          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.10 · API: verificando…</div>
         </div>
       </div>
 
@@ -1327,6 +1332,7 @@ function carregarContadorCartelas(){
     _sc.carregando = false;
     if(err || !data || !data.sucesso){ _scStatus('Erro ao carregar as séries.'); return; }
     _sc.series = (data.dados && data.dados.series) || [];
+    _scRestaurarModo();
     _scRecalcular();
   });
 }
@@ -1337,27 +1343,46 @@ function _scChave(s){
   return tel.length>=8 ? 'tel:'+tel : 'nome:'+String(s.comprador||'').trim().toLowerCase();
 }
 
+function _scModo(){
+  const r = document.querySelector('input[name="scModo"]:checked');
+  return r ? r.value : 'todas';
+}
+function _scMudarModo(){
+  ls('bingo_sorteio_modo', _scModo());
+  _scRecalcular();
+}
+function _scRestaurarModo(){
+  const m = ls('bingo_sorteio_modo');
+  const r = document.querySelector('input[name="scModo"][value="'+(m==='vendidas'?'vendidas':'todas')+'"]');
+  if(r) r.checked = true;
+}
+
 function _scRecalcular(){
-  const vendidas  = _sc.series.filter(s=>s.vendidas>0);
+  const modo      = _scModo();
+  /* Por padrão todas as séries concorrem: a venda pode não ter sido lançada a tempo */
+  const pool      = modo==='vendidas' ? _sc.series.filter(s=>s.vendidas>0) : _sc.series;
   const sorteadas = _sc.series.filter(s=>s.sorteada);
   const chk       = document.getElementById('scNaoRepetir');
   const naoRepetir = chk ? chk.checked : true;
   const ganhadores = new Set(sorteadas.filter(s=>s.comprador).map(_scChave));
   let fora = 0;
-  _sc.disponiveis = vendidas.filter(s=>!s.sorteada).filter(s=>{
-    if(naoRepetir && ganhadores.has(_scChave(s))){ fora++; return false; }
+  _sc.disponiveis = pool.filter(s=>!s.sorteada).filter(s=>{
+    /* a regra de não repetir só vale para séries com comprador lançado */
+    if(naoRepetir && s.comprador && ganhadores.has(_scChave(s))){ fora++; return false; }
     return true;
   }).map(s=>s.serie);
   const disp = _sc.disponiveis.length;
-  document.getElementById('ctTotal').textContent = vendidas.length;
+  const semDono = _sc.disponiveis.filter(n=>{ const x=_sc.series.find(y=>y.serie===n); return x && !x.comprador; }).length;
+  document.getElementById('ctTotal').textContent = pool.length;
   document.getElementById('ctDisp').textContent  = disp;
   document.getElementById('ctSort').textContent  = sorteadas.length;
   const btn = document.getElementById('btnSortearCartela');
   if(btn) btn.disabled = (disp===0 || _sc.carregando);
   let msg;
-  if(!vendidas.length) msg = '⚠️ Nenhuma série vendida ainda. Registre as vendas em "Vendas por série".';
-  else if(disp===0)    msg = '⚠️ Todas as séries concorrentes já foram sorteadas!';
-  else                 msg = disp+' série'+(disp!==1?'s':'')+' concorrendo';
+  if(!_sc.series.length)  msg = '⚠️ Nenhuma série encontrada. Organize as cartelas em séries no Cadastro.';
+  else if(!pool.length)   msg = '⚠️ Nenhuma série vendida ainda. Escolha "Todas as séries" ou registre as vendas em "Vendas por série".';
+  else if(disp===0)       msg = '⚠️ Todas as séries concorrentes já foram sorteadas!';
+  else                    msg = disp+' série'+(disp!==1?'s':'')+' concorrendo'+(semDono? ' ('+semDono+' ainda sem comprador lançado)':'');
   if(fora) msg += ' · '+fora+' fora por já terem ganhado (mesmo comprador)';
   _scStatus(msg);
 }
@@ -1391,7 +1416,7 @@ function sortearCartela(){
     lastCartela = serie;
 
     document.getElementById('resNumero').textContent = 'Série ' + n;
-    document.getElementById('resNome').textContent   = serie.comprador || 'Sem nome';
+    document.getElementById('resNome').textContent   = serie.comprador || 'Sem comprador lançado';
     document.getElementById('resInfo').textContent   = (serie.telefone ? serie.telefone + ' · ' : '') + 'Cartelas ' + serie.cartelas.join(' · ');
     document.getElementById('cartelaResult').classList.add('show');
 
@@ -1561,7 +1586,7 @@ async function testarPlanilha(){
    INIT AUTH
 ══════════════════════════════════════════════════════════ */
 /* Versão do arquivo e do Apps Script (a ação desconhecida responde só { versao }) */
-const FRONT_VERSION = '1.9'; /* versão deste painel.html — atualizar a cada mudança */
+const FRONT_VERSION = '1.10'; /* versão deste painel.html — atualizar a cada mudança */
 (function(){
   _scJsonp(SCRIPT_PATROC + '?acao=_ping', function(err, data){
     const el = document.getElementById('verInfo');
