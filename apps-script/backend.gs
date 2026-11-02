@@ -20,6 +20,7 @@
 /* Mude a VERSAO a cada edição. Ela aparece no cadastro, no verificador e no painel
  * ("API: ..."), então dá para conferir se a nova versão foi mesmo publicada.
  * Changelog:
+ *   2.7.0 (2026-11-01) — painel do vendedor: situacaoSeries (livre/vendida, sem dados pessoais), venderSerie (recusa série já vendida, valida celular, grava log na aba Vendas_log) e minhasVendas.
  *   2.6.0 (2026-10-29) — ganhadores: o sorteio de séries também é registrado (fase "sorteio", com prêmio) e listarGanhadores alimenta a tela ganhadores.html.
  *   2.5.0 (2026-10-29) — sorteio por série: marcarSerieSorteada (marca as 4 cartelas) e "sorteada" na lista de séries.
  *   2.4.0 (2026-10-29) — vendas por série: listar (uma linha por série), vender várias séries de uma vez,
@@ -32,7 +33,7 @@
  *                        pessoais. Desligado por padrão: ligue EXIGIR_TOKEN depois de testar.
  *   2.0.1 (2026-10-26) — doGet único: repassa ?action= (login) para o Auth.gs.
  *   2.0.0 (2026-10-26) — script único na planilha nova: cartelas, patrocinadores e vídeos. */
-var VERSAO = '2.6.0 (29/10/2026)';
+var VERSAO = '2.7.0 (01/11/2026)';
 
 /* ── Proteção de acesso ───────────────────────────────────────────────
  * false = tudo aberto como antes (modo de transição).
@@ -44,13 +45,15 @@ var PROTEGIDAS = {
   cadastrarCartelasEmLote: 1, marcarSorteada: 1, resetarSorteios: 1,
   adicionarVideo: 1, removerVideo: 1,
   buscarSerie: 1, atualizarSerie: 1, cadastrarSeriesEmLote: 1, organizarSeries: 1, listarSeries: 1,
-  registrarGanhador: 1, listarVendas: 1, liberarSerie: 1, marcarSerieSorteada: 1, listarGanhadores: 1
+  registrarGanhador: 1, listarVendas: 1, liberarSerie: 1, marcarSerieSorteada: 1, listarGanhadores: 1,
+  situacaoSeries: 1, venderSerie: 1, minhasVendas: 1
 };
 var TOKEN_HORAS_ADMIN = 12; /* administradores não têm prazo de acesso: o token vale 12 h */
 var ABA_CARTELAS = 'Cartelas';
 var ABA_PATROCINIO = 'Lista_Patrocinio';
 var ABA_VIDEOS = 'Videos';
 var ABA_GANHADORES = 'Ganhadores';
+var ABA_VENDAS_LOG = 'Vendas_log';
 
 /* ───────────── entrada ───────────── */
 function doGet(e) {
@@ -79,6 +82,9 @@ function doGet(e) {
       case 'listarSeries':            out = ok(listarSeries_(p)); break;
       case 'registrarGanhador':       out = ok(registrarGanhador_(p)); break;
       case 'listarGanhadores':        out = ok(listarGanhadores_()); break;
+      case 'situacaoSeries':          out = ok(situacaoSeries_(p)); break;
+      case 'venderSerie':             out = ok(venderSerie_(p)); break;
+      case 'minhasVendas':            out = ok(minhasVendas_(p)); break;
       case 'listarVendas':            out = ok(listarVendas_()); break;
       case 'liberarSerie':            out = ok(liberarSerie_(p)); break;
       case 'marcarSerieSorteada':     out = ok(marcarSerieSorteada_(p.serie)); break;
@@ -658,6 +664,102 @@ function listarSeries_(p) {
     return { serie: s, cartelas: mapa[s].sort(function (a, b) { return a.posicao - b.posicao; }) };
   });
   return { total: series.length, series: series };
+}
+
+/* ───────────── painel do vendedor ─────────────
+ * Três ações para a tela vendedor.html: ver se a série está livre (sem mostrar dados de ninguém),
+ * vender (nunca sobrescreve uma venda existente) e listar as vendas de um vendedor. */
+function limparNome_(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); }
+function soDigitos_(t) { return String(t == null ? '' : t).replace(/\D/g, ''); }
+function semAcento_(t) { return String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+function formatarTelefone_(dig) {
+  if (dig.length === 11) return '(' + dig.slice(0, 2) + ') ' + dig.slice(2, 7) + '-' + dig.slice(7);
+  return '(' + dig.slice(0, 2) + ') ' + dig.slice(2, 6) + '-' + dig.slice(6);
+}
+function temComprador_(d, i) { return String(d.linhas[i][d.colunas.comprador_nome]).trim() !== ''; }
+
+/* Para cada série pedida: existe? livre, parcial ou vendida? quais cartelas. Sem nome nem telefone. */
+function situacaoSeries_(p) {
+  var lista = parseSeries_(p.serie);
+  if (lista.length > 50) throw new Error('Consulte até 50 séries por vez.');
+  var d = ler_(aba_(ABA_CARTELAS));
+  exigirSerie_(d);
+  var mapa = linhasPorSerie_(d, lista);
+  return {
+    series: lista.map(function (s) {
+      var idx = mapa[s];
+      if (!idx.length) return { serie: s, existe: false };
+      var vend = idx.filter(function (i) { return temComprador_(d, i); }).length;
+      return {
+        serie: s, existe: true,
+        situacao: vend === 0 ? 'livre' : vend < idx.length ? 'parcial' : 'vendida',
+        cartelas: idx.map(function (i) { return Number(d.linhas[i][d.colunas.id_cartela]); })
+      };
+    })
+  };
+}
+
+function abaVendasLog_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(ABA_VENDAS_LOG);
+  if (!sh) {
+    sh = ss.insertSheet(ABA_VENDAS_LOG);
+    sh.appendRow(['data_hora', 'series', 'cartelas', 'comprador', 'telefone', 'vendedor', 'pago', 'registrado_por']);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+/* Registra a venda de uma ou mais séries. Tudo ou nada: se alguma série não existir ou já tiver
+ * comprador, nada é gravado. Não sobrescreve venda existente (para isso, use Vendas por Série). */
+function venderSerie_(p) {
+  var nome = limparNome_(p.nome), vendedor = limparNome_(p.vendedor), dig = soDigitos_(p.telefone);
+  if (!nome) throw new Error('Informe o nome do comprador.');
+  if (nome.length > 80) throw new Error('O nome do comprador pode ter até 80 letras.');
+  if (dig.length < 10 || dig.length > 11) throw new Error('Celular inválido. Digite o DDD e o número (10 ou 11 dígitos).');
+  if (!vendedor) throw new Error('Informe o nome do vendedor.');
+  if (vendedor.length > 60) throw new Error('O nome do vendedor pode ter até 60 letras.');
+  var paga = String(p.paga);
+  if (paga !== 'true' && paga !== 'false') throw new Error('Informe se o pagamento já foi recebido.');
+  var lista = parseSeries_(p.serie);
+  if (lista.length > 20) throw new Error('Registre até 20 séries por vez.');
+  var telefone = formatarTelefone_(dig);
+  return comLock_(function () {
+    var sh = aba_(ABA_CARTELAS);
+    garantirColuna_(sh, 'vendedor');
+    var d = ler_(sh);
+    exigirSerie_(d);
+    var mapa = linhasPorSerie_(d, lista);
+    var faltam = lista.filter(function (s) { return !mapa[s].length; });
+    if (faltam.length) throw new Error('Série(s) não encontrada(s): ' + faltam.join(', ') + '. Nada foi gravado.');
+    var ocupadas = lista.filter(function (s) { return mapa[s].some(function (i) { return temComprador_(d, i); }); });
+    if (ocupadas.length) throw new Error('Série(s) já vendida(s): ' + ocupadas.join(', ') + '. Nada foi gravado. Confira o número ou fale com a coordenação.');
+    var idx = [];
+    lista.forEach(function (s) { idx = idx.concat(mapa[s]); });
+    var hoje = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'yyyy-MM-dd');
+    aplicarVenda_(sh, d, idx, { nome: nome, telefone: telefone, paga: paga, dataVenda: hoje, vendedor: vendedor });
+    var cartelas = idx.map(function (i) { return Number(d.linhas[i][d.colunas.id_cartela]); });
+    var info = verificarToken_(p.token);
+    var quem = info ? '***' + String(info.c).slice(-4) : '';
+    abaVendasLog_().appendRow([
+      Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm:ss'),
+      lista.join(', '), cartelas.join(' · '), nome, telefone, vendedor, paga === 'true' ? 'sim' : 'não', quem
+    ]);
+    return { series: lista, cartelas: cartelas, comprador: nome, telefone: telefone, vendedor: vendedor, paga: paga === 'true', dataVenda: hoje };
+  });
+}
+
+/* Séries vendidas por um vendedor (nome sem acento nem maiúsculas), mais recentes primeiro. */
+function minhasVendas_(p) {
+  var quem = semAcento_(p.vendedor);
+  if (!quem) throw new Error('Informe o vendedor.');
+  var minhas = listarVendas_().series.filter(function (s) { return s.comprador && semAcento_(s.vendedor) === quem; });
+  minhas.sort(function (a, b) { return a.dataVenda < b.dataVenda ? 1 : a.dataVenda > b.dataVenda ? -1 : b.serie - a.serie; });
+  var pagas = minhas.filter(function (s) { return s.paga; }).length;
+  return {
+    vendedor: limparNome_(p.vendedor), total: minhas.length, pagas: pagas, aReceber: minhas.length - pagas,
+    series: minhas.map(function (s) { return { serie: s.serie, cartelas: s.cartelas, comprador: s.comprador, telefone: s.telefone, paga: s.paga, dataVenda: s.dataVenda }; })
+  };
 }
 
 /* ───────────── ganhadores ─────────────

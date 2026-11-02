@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vendedor — Show de Prêmios</title>
+<!-- vendedor.html — Versão 1.0
+     Painel do vendedor, feito para o celular: no momento da venda ele registra a série, o nome do comprador,
+     o celular e o nome do vendedor. Não sobrescreve venda existente. Mostra as vendas do próprio vendedor. Pede login. -->
+<script src="acesso.js"></script>
+<style>
+  :root { --vinho:#4a0f0b; --verm:#c1340e; --ouro:#e6bd34; --borda:#e6cfc8; --fundo:#f9efec; --txt:#2a1512; --mudo:#7a6560; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Segoe UI',Arial,sans-serif; background:var(--fundo); color:var(--txt); }
+  header { background:var(--vinho); color:#fff; padding:12px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:5; }
+  header h1 { margin:0; font-size:18px; color:var(--ouro); }
+  header .sub { font-size:12px; color:rgba(255,255,255,.7); }
+  header a { margin-left:auto; color:#f2cfc4; text-decoration:none; font-size:22px; }
+  main { max-width:560px; margin:0 auto; padding:14px 14px 48px; }
+  .card { background:#fff; border:1px solid var(--borda); border-radius:14px; padding:14px 16px; margin-bottom:14px; }
+  .card h2 { margin:0 0 6px; font-size:16px; color:var(--vinho); }
+  label { display:block; font-size:13px; color:var(--mudo); margin-top:12px; }
+  input[type=text], input[type=tel] { width:100%; margin-top:4px; padding:13px 14px; border:1px solid var(--borda); border-radius:10px; font-size:17px; font-family:inherit; background:#fff; color:var(--txt); }
+  input:focus { outline:2px solid var(--verm); border-color:var(--verm); }
+  .estado { margin-top:6px; font-size:14px; min-height:20px; font-weight:600; }
+  .estado.ok { color:#27500a; } .estado.ruim { color:#a32d2d; } .estado.neutro { color:var(--mudo); font-weight:400; }
+  .pag { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:6px; }
+  .pag button { border:2px solid var(--borda); background:#fff; border-radius:12px; padding:14px 8px; font-size:16px; font-weight:700; cursor:pointer; color:var(--txt); }
+  .pag button.on.pago { background:#dff0d4; border-color:#3b6d11; color:#27500a; }
+  .pag button.on.receber { background:#fdf0d3; border-color:#b7791f; color:#7a5200; }
+  .btn { width:100%; border:0; border-radius:12px; padding:16px; font-size:18px; font-weight:700; cursor:pointer; background:var(--verm); color:#fff; margin-top:16px; }
+  .btn:disabled { opacity:.55; }
+  .btn.sec { background:#f3e1db; color:var(--vinho); font-size:14px; padding:10px; margin-top:8px; }
+  #msg { margin-top:12px; padding:0; font-size:15px; line-height:1.35; }
+  #msg.ok { background:#e6f3dc; color:#27500a; padding:12px 14px; border-radius:10px; }
+  #msg.erro { background:#fbe9e7; color:#a32d2d; padding:12px 14px; border-radius:10px; }
+  .metricas { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:6px 0 10px; }
+  .metrica { background:#fbf4f1; border-radius:10px; padding:8px 6px; text-align:center; }
+  .metrica .n { font-size:22px; font-weight:800; color:var(--vinho); }
+  .metrica .l { font-size:11.5px; color:var(--mudo); }
+  .venda { padding:10px 0; border-top:1px solid #f1e3de; display:flex; gap:10px; align-items:flex-start; }
+  .venda:first-child { border-top:0; }
+  .venda .s { flex:none; min-width:52px; text-align:center; background:var(--vinho); color:var(--ouro); border-radius:10px; padding:6px 4px; font-weight:800; font-size:17px; line-height:1.05; }
+  .venda .s small { display:block; font-size:10px; font-weight:600; color:#f2cfc4; }
+  .venda .i { flex:1; min-width:0; }
+  .venda .n { font-weight:700; overflow-wrap:anywhere; }
+  .venda .t { font-size:13px; color:var(--mudo); }
+  .tag { font-size:11.5px; padding:2px 8px; border-radius:7px; font-weight:700; white-space:nowrap; }
+  .t-pago { background:#dff0d4; color:#27500a; } .t-rec { background:#fdf0d3; color:#7a5200; }
+  .vazio { color:#a8958f; font-size:14px; padding:6px 0; }
+  .link { background:none; border:0; color:var(--verm); font-weight:700; cursor:pointer; font-size:14px; padding:6px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🧾 Registrar venda</h1>
+    <div class="sub" id="quem">vendedor.html v1.0 · conectando…</div>
+  </div>
+  <a href="index.html" title="Menu">🏠</a>
+</header>
+
+<main>
+  <div class="card">
+    <h2>Nova venda</h2>
+
+    <label for="fSerie">Série vendida (o número da folha)</label>
+    <input type="text" id="fSerie" inputmode="text" autocomplete="off" placeholder="Ex.: 7   ou   7, 12, 15-18" oninput="aoDigitarSerie()">
+    <div class="estado neutro" id="estSerie">Digite o número da série.</div>
+
+    <label for="fNome">Nome do comprador</label>
+    <input type="text" id="fNome" autocomplete="off" maxlength="80" placeholder="Nome e sobrenome">
+
+    <label for="fTel">Celular do comprador (com DDD)</label>
+    <input type="tel" id="fTel" inputmode="tel" autocomplete="off" placeholder="(14) 99999-0000" oninput="mascaraTelefone(this)">
+
+    <label for="fVend">Nome do vendedor</label>
+    <input type="text" id="fVend" autocomplete="off" maxlength="60" placeholder="Quem está vendendo">
+
+    <label>Pagamento</label>
+    <div class="pag">
+      <button type="button" class="pago" id="bPago" onclick="escolherPag(true)">✅ Já pagou</button>
+      <button type="button" class="receber" id="bRec" onclick="escolherPag(false)">⏳ A receber</button>
+    </div>
+
+    <button class="btn" id="btnSalvar" onclick="registrar()">Registrar venda</button>
+    <div id="msg"></div>
+    <button class="btn sec" id="btnDesfazer" style="display:none" onclick="desfazer()">↩ Desfazer esta venda</button>
+  </div>
+
+  <div class="card">
+    <h2>Minhas vendas</h2>
+    <div class="metricas">
+      <div class="metrica"><div class="n" id="m-total">0</div><div class="l">Séries</div></div>
+      <div class="metrica"><div class="n" id="m-pagas">0</div><div class="l">Pagas</div></div>
+      <div class="metrica"><div class="n" id="m-rec">0</div><div class="l">A receber</div></div>
+    </div>
+    <div id="lista"><div class="vazio">Carregando…</div></div>
+    <button class="link" onclick="carregarMinhas()">🔄 Atualizar</button>
+  </div>
+</main>
+
+<script>
+var API = Acesso.authUrl;
+var FRONT_VERSION = '1.0'; // versão deste arquivo vendedor.html — atualizar a cada mudança
+var LS_VEND = 'bingo_vendedor_nome';
+var pago = null;            /* null = ainda não escolheu */
+var salvando = false, ultima = null /* { series, em } da última venda, para desfazer */;
+var timerSerie = null, seqSerie = 0;
+
+function $(id) { return document.getElementById(id); }
+function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function lerLs(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+function gravarLs(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function nomeDaSessao() { try { var s = JSON.parse(localStorage.getItem('bingo_session_v1') || 'null'); return (s && s.nome) || ''; } catch (e) { return ''; } }
+function erroDe(err, data, padrao) { return (data && data.dados && data.dados.mensagem) || (err && err.message) || padrao; }
+
+/* ── JSONP com token (pede login quando o servidor recusar) ── */
+function jsonp(url, cb) {
+  var id  = '_cb' + Date.now() + (Math.random() * 9999 | 0);
+  var tag = document.createElement('script');
+  window[id] = function(data) {
+    try { delete window[id]; } catch(e) { window[id] = void 0; }
+    tag.parentNode && tag.parentNode.removeChild(tag);
+    if (Acesso.negado(data)) { Acesso.pedirLogin(function() { jsonp(url, cb); }); return; }
+    cb(null, data);
+  };
+  tag.onerror = function() {
+    try { delete window[id]; } catch(e) { window[id] = void 0; }
+    tag.parentNode && tag.parentNode.removeChild(tag);
+    cb(new Error('Sem conexão. Tente de novo.'));
+  };
+  tag.src = Acesso.comToken(url) + '&callback=' + id + '&_=' + Date.now();
+  document.head.appendChild(tag);
+}
+
+function mascaraTelefone(input) {
+  var v = input.value.replace(/\D/g, '').substring(0, 11);
+  if (v.length > 10) v = '(' + v.substring(0, 2) + ') ' + v.substring(2, 7) + '-' + v.substring(7);
+  else if (v.length > 6) v = '(' + v.substring(0, 2) + ') ' + v.substring(2, 6) + '-' + v.substring(6);
+  else if (v.length > 2) v = '(' + v.substring(0, 2) + ') ' + v.substring(2);
+  input.value = v;
+}
+
+function escolherPag(p) {
+  pago = p;
+  $('bPago').className = 'pago' + (p === true ? ' on' : '');
+  $('bRec').className = 'receber' + (p === false ? ' on' : '');
+}
+
+function mensagem(t, tipo) { $('msg').textContent = t || ''; $('msg').className = tipo || ''; }
+
+/* ── Série: confere se está livre enquanto digita ── */
+function estado(texto, tipo) { $('estSerie').textContent = texto; $('estSerie').className = 'estado ' + tipo; }
+function aoDigitarSerie() {
+  clearTimeout(timerSerie);
+  var t = $('fSerie').value.trim();
+  if (!t) { estado('Digite o número da série.', 'neutro'); return; }
+  if (!/^[\d\s,;\-a]+$/i.test(t)) { estado('Use só números, vírgula e traço (ex.: 7, 12, 15-18).', 'ruim'); return; }
+  estado('Conferindo…', 'neutro');
+  timerSerie = setTimeout(conferirSerie, 450);
+}
+function resumoCartelas(c) { return c && c.length ? 'cartelas ' + c[0] + ' a ' + c[c.length - 1] : ''; }
+function conferirSerie() {
+  var t = $('fSerie').value.trim(); if (!t) return;
+  var meu = ++seqSerie;
+  jsonp(API + '?acao=situacaoSeries&serie=' + encodeURIComponent(t), function(err, data) {
+    if (meu !== seqSerie) return; /* já digitou outra coisa */
+    if (err || !data || !data.sucesso) { estado(erroDe(err, data, 'Não consegui conferir a série.'), 'ruim'); return; }
+    var l = data.dados.series, naoExiste = l.filter(function(x) { return !x.existe; }), ocupadas = l.filter(function(x) { return x.existe && x.situacao !== 'livre'; });
+    if (naoExiste.length) estado('A série ' + naoExiste.map(function(x) { return x.serie; }).join(', ') + ' não existe.', 'ruim');
+    else if (ocupadas.length) estado('⛔ Já vendida: ' + ocupadas.map(function(x) { return x.serie; }).join(', ') + '. Confira o número.', 'ruim');
+    else estado('✅ ' + (l.length === 1 ? 'Disponível (' + resumoCartelas(l[0].cartelas) + ')' : l.length + ' séries disponíveis'), 'ok');
+  });
+}
+
+/* ── Registrar ── */
+function registrar() {
+  if (salvando) return;
+  var serie = $('fSerie').value.trim(), nome = $('fNome').value.trim().replace(/\s+/g, ' '), tel = $('fTel').value, vend = $('fVend').value.trim().replace(/\s+/g, ' ');
+  if (!serie) { mensagem('Digite o número da série.', 'erro'); $('fSerie').focus(); return; }
+  if (!nome) { mensagem('Digite o nome do comprador.', 'erro'); $('fNome').focus(); return; }
+  var dig = tel.replace(/\D/g, '');
+  if (dig.length < 10) { mensagem('Digite o celular com DDD (10 ou 11 números).', 'erro'); $('fTel').focus(); return; }
+  if (!vend) { mensagem('Digite o nome do vendedor.', 'erro'); $('fVend').focus(); return; }
+  if (pago === null) { mensagem('Escolha o pagamento: "Já pagou" ou "A receber".', 'erro'); return; }
+  if (!confirm('Confirma a venda?\n\nSérie: ' + serie + '\nComprador: ' + nome + '\nCelular: ' + tel + '\nVendedor: ' + vend + '\nPagamento: ' + (pago ? 'já pagou' : 'a receber'))) return;
+
+  salvando = true; $('btnSalvar').disabled = true; $('btnSalvar').textContent = 'Registrando…'; mensagem('');
+  gravarLs(LS_VEND, vend);
+  jsonp(API + '?acao=venderSerie&serie=' + encodeURIComponent(serie) + '&nome=' + encodeURIComponent(nome)
+      + '&telefone=' + encodeURIComponent(dig) + '&vendedor=' + encodeURIComponent(vend) + '&paga=' + (pago ? 'true' : 'false'),
+    function(err, data) {
+      salvando = false; $('btnSalvar').disabled = false; $('btnSalvar').textContent = 'Registrar venda';
+      if (err || !data || !data.sucesso) { mensagem(erroDe(err, data, 'Não foi possível registrar. Tente de novo.'), 'erro'); conferirSerie(); return; }
+      var d = data.dados;
+      mensagem('✔ ' + (d.series.length === 1 ? 'Série ' + d.series[0] + ' registrada' : 'Séries ' + d.series.join(', ') + ' registradas') + ' para ' + d.comprador + '.', 'ok');
+      ultima = { series: d.series, em: Date.now() };
+      $('btnDesfazer').style.display = '';
+      $('fSerie').value = ''; $('fNome').value = ''; $('fTel').value = ''; escolherPag(null);
+      estado('Digite o número da série.', 'neutro');
+      $('fSerie').focus();
+      carregarMinhas();
+    });
+}
+
+/* Desfazer só vale para a última venda, por 5 minutos (engano de digitação) */
+function desfazer() {
+  if (!ultima || Date.now() - ultima.em > 5 * 60 * 1000) { $('btnDesfazer').style.display = 'none'; mensagem('O prazo de 5 minutos para desfazer acabou. Fale com a coordenação.', 'erro'); return; }
+  if (!confirm('Desfazer a venda da(s) série(s) ' + ultima.series.join(', ') + '?')) return;
+  var series = ultima.series.join(',');
+  jsonp(API + '?acao=liberarSerie&serie=' + encodeURIComponent(series), function(err, data) {
+    if (err || !data || !data.sucesso) { mensagem(erroDe(err, data, 'Não foi possível desfazer.'), 'erro'); return; }
+    mensagem('Venda desfeita. As séries voltaram a ficar disponíveis.', 'ok');
+    ultima = null; $('btnDesfazer').style.display = 'none';
+    carregarMinhas();
+  });
+}
+
+/* ── Minhas vendas ── */
+function carregarMinhas() {
+  var v = $('fVend').value.trim() || lerLs(LS_VEND) || nomeDaSessao();
+  if (!v) { $('lista').innerHTML = '<div class="vazio">Digite o nome do vendedor para ver as suas vendas.</div>'; return; }
+  jsonp(API + '?acao=minhasVendas&vendedor=' + encodeURIComponent(v), function(err, data) {
+    if (err || !data || !data.sucesso) { $('lista').innerHTML = '<div class="vazio">' + esc(erroDe(err, data, 'Não consegui carregar.')) + '</div>'; return; }
+    var d = data.dados;
+    $('m-total').textContent = d.total; $('m-pagas').textContent = d.pagas; $('m-rec').textContent = d.aReceber;
+    $('lista').innerHTML = d.series.length ? d.series.map(function(s) {
+      return '<div class="venda"><div class="s"><small>Série</small>' + esc(s.serie) + '</div><div class="i"><div class="n">' + esc(s.comprador) + '</div>'
+        + '<div class="t">' + esc(s.telefone) + ' · ' + esc(String(s.dataVenda).split('-').reverse().join('/')) + '</div></div>'
+        + '<span class="tag ' + (s.paga ? 't-pago' : 't-rec') + '">' + (s.paga ? 'Pago' : 'A receber') + '</span></div>';
+    }).join('') : '<div class="vazio">Nenhuma venda registrada por ' + esc(d.vendedor) + ' ainda.</div>';
+  });
+}
+
+/* ── Início ── */
+(function iniciar() {
+  $('fVend').addEventListener('change', carregarMinhas);
+  /* depois do login (ou já logado): preenche o vendedor com o nome de quem entrou e carrega as vendas */
+  Acesso.exigirLogin(function() {
+    var nome = lerLs(LS_VEND) || nomeDaSessao();
+    if (!$('fVend').value) $('fVend').value = nome;
+    carregarMinhas();
+  });
+  $('quem').textContent = 'vendedor.html v' + FRONT_VERSION;
+  jsonp(API + '?acao=_ping', function(err, data) {
+    $('quem').textContent = 'vendedor.html v' + FRONT_VERSION + ' · API: ' + (err || !data || !data.versao ? 'sem resposta' : data.versao);
+  });
+})();
+</script>
+</body>
+</html>
