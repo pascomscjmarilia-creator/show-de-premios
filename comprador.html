@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Cadastre sua série — Show de Prêmios</title>
-<!-- comprador.html — Versão 1.0
+<!-- comprador.html — Versão 1.1
      Página PÚBLICA aberta pelo QR Code da folha. O comprador vê o número da série (já preenchido pelo link),
      informa nome e celular e confirma. Não tem login nem menu: só funciona com o código secreto da série. -->
 <script src="qr-lib.js"></script>
+<script src="api.js"></script>
 <style>
   :root { --vinho:#4a0f0b; --verm:#c1340e; --ouro:#e6bd34; --borda:#e6cfc8; --fundo:#f9efec; --txt:#2a1512; --mudo:#7a6560; }
   * { box-sizing: border-box; }
@@ -51,6 +52,10 @@
 <main>
   <div class="card grande" id="carregando"><div class="ico">⏳</div><p>Conferindo a sua série…</p></div>
 
+  <div class="card grande oculto" id="semRede"><div class="ico">📶</div><h2>Não consegui falar com o servidor</h2>
+    <p id="semRedeMsg">Confira a internet do celular.</p>
+    <button class="btn" onclick="tentarDeNovo()">Tentar de novo</button></div>
+
   <div class="card grande oculto" id="invalido"><div class="ico">🔗</div><h2>Link não reconhecido</h2>
     <p id="invalidoMsg">Escaneie de novo o QR Code da sua folha ou peça ajuda a quem vendeu.</p></div>
 
@@ -77,34 +82,23 @@
 
 <script>
 var API = 'https://script.google.com/macros/s/AKfycbxi282C_QHoo5Xm7bqinACTWwzNh9x32aWikssVJ7REoIH1lnOSucgPHslkhHvf8PSP/exec';
-var FRONT_VERSION = '1.0'; // versão deste arquivo comprador.html — atualizar a cada mudança
+var FRONT_VERSION = '1.1'; // versão deste arquivo comprador.html — atualizar a cada mudança
 var link = QRLink.lerLink(location.search);
 var enviando = false;
 
 function $(id) { return document.getElementById(id); }
-function so(id) { ['carregando', 'invalido', 'jaFeito', 'formulario', 'sucesso'].forEach(function(x) { $(x).classList.toggle('oculto', x !== id); }); }
+function so(id) { ['carregando', 'semRede', 'invalido', 'jaFeito', 'formulario', 'sucesso'].forEach(function(x) { $(x).classList.toggle('oculto', x !== id); }); }
 function erroDe(err, data, padrao) { return (data && data.dados && data.dados.mensagem) || (err && err.message) || padrao; }
 
-/* JSONP público (sem login), com nova tentativa se a rede falhar */
-function jsonp(url, cb, tentativa) {
-  tentativa = tentativa || 1;
-  var id = '_cb' + Date.now() + (Math.random() * 9999 | 0), tag = document.createElement('script'), fim = false, timer = null;
-  function limpar() { clearTimeout(timer); try { delete window[id]; } catch (e) { window[id] = void 0; } if (tag.parentNode) tag.parentNode.removeChild(tag); }
-  function falhou() {
-    if (fim) return; fim = true; limpar();
-    if (tentativa < 3) { setTimeout(function() { jsonp(url, cb, tentativa + 1); }, 1200 * tentativa); return; }
-    cb(new Error('Sem resposta do servidor. Confira a internet do celular e tente de novo.'));
-  }
-  window[id] = function(data) { if (fim) return; fim = true; limpar(); cb(null, data); };
-  tag.onerror = falhou; timer = setTimeout(falhou, 20000);
-  tag.src = url + '&callback=' + id + '&_=' + Date.now();
-  document.head.appendChild(tag);
-}
+/* Chamada pública (sem login): fetch sem cookies, com plano B e 3 tentativas (api.js) */
+function jsonp(url, cb) { Api.chamar(url, cb); }
+
+function tentarDeNovo() { so('carregando'); iniciar(); }
 
 function iniciar() {
   if (!link) { so('invalido'); return; }
   jsonp(API + '?acao=consultarSerieQR&serie=' + link.serie + '&codigo=' + encodeURIComponent(link.codigo), function(err, data) {
-    if (err) { $('invalidoMsg').textContent = err.message; so('invalido'); return; }
+    if (err) { $('semRedeMsg').textContent = err.message; so('semRede'); return; }
     if (!data || !data.sucesso) { $('invalidoMsg').textContent = erroDe(err, data, 'Link inválido.'); so('invalido'); return; }
     var d = data.dados;
     if (d.situacao !== 'livre') { so('jaFeito'); return; }

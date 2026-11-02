@@ -4,9 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vendedor — Show de Prêmios</title>
-<!-- vendedor.html — Versão 1.0
+<!-- vendedor.html — Versão 1.2
      Painel do vendedor, feito para o celular: no momento da venda ele registra a série, o nome do comprador,
      o celular e o nome do vendedor. Não sobrescreve venda existente. Mostra as vendas do próprio vendedor. Pede login. -->
+<script src="api.js"></script>
 <script src="acesso.js"></script>
 <style>
   :root { --vinho:#4a0f0b; --verm:#c1340e; --ouro:#e6bd34; --borda:#e6cfc8; --fundo:#f9efec; --txt:#2a1512; --mudo:#7a6560; }
@@ -103,7 +104,7 @@
 
 <script>
 var API = Acesso.authUrl;
-var FRONT_VERSION = '1.1'; // versão deste arquivo vendedor.html — atualizar a cada mudança
+var FRONT_VERSION = '1.2'; // versão deste arquivo vendedor.html — atualizar a cada mudança
 var LS_VEND = 'bingo_vendedor_nome';
 var pago = null;            /* null = ainda não escolheu */
 var salvando = false, ultima = null /* { series, em } da última venda, para desfazer */;
@@ -116,29 +117,13 @@ function gravarLs(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 function nomeDaSessao() { try { var s = JSON.parse(localStorage.getItem('bingo_session_v1') || 'null'); return (s && s.nome) || ''; } catch (e) { return ''; } }
 function erroDe(err, data, padrao) { return (data && data.dados && data.dados.mensagem) || (err && err.message) || padrao; }
 
-/* ── JSONP com token (pede login quando o servidor recusar; tenta de novo se a rede falhar) ── */
-var TENTATIVAS = 3, ESPERA_MS = 20000;
-function jsonp(url, cb, tentativa) {
-  tentativa = tentativa || 1;
-  var id  = '_cb' + Date.now() + (Math.random() * 9999 | 0);
-  var tag = document.createElement('script'), fim = false, timer = null;
-  var acao = (url.match(/acao=([A-Za-z_]+)/) || [])[1] || '?';
-  function limpar() { clearTimeout(timer); try { delete window[id]; } catch(e) { window[id] = void 0; } if (tag.parentNode) tag.parentNode.removeChild(tag); }
-  function falhou() {
-    if (fim) return; fim = true; limpar();
-    if (tentativa < TENTATIVAS) { setTimeout(function() { jsonp(url, cb, tentativa + 1); }, 1200 * tentativa); return; }
-    try { console.warn('vendedor.html: sem resposta do servidor (' + acao + ') após ' + TENTATIVAS + ' tentativas'); } catch(e) {}
-    cb(new Error('O servidor não respondeu (' + acao + '). Confira o sinal do celular e toque em Atualizar.'));
-  }
-  window[id] = function(data) {
-    if (fim) return; fim = true; limpar();
+/* ── Chamada com token: fetch sem cookies (funciona mesmo com várias contas Google no celular), com plano B e 3 tentativas ── */
+function jsonp(url, cb) {
+  Api.chamar(Acesso.comToken(url), function(err, data) {
+    if (err) { cb(err); return; }
     if (Acesso.negado(data)) { Acesso.pedirLogin(function() { jsonp(url, cb); }); return; }
     cb(null, data);
-  };
-  tag.onerror = falhou;
-  timer = setTimeout(falhou, ESPERA_MS);
-  tag.src = Acesso.comToken(url) + '&callback=' + id + '&_=' + Date.now();
-  document.head.appendChild(tag);
+  });
 }
 
 function mascaraTelefone(input) {

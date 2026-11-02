@@ -1,4 +1,4 @@
-/* acesso.js — Show de Prêmios — Versão 1.2
+/* acesso.js — Show de Prêmios — Versão 1.3
  * Guarda o token de acesso (emitido no login) e o envia nas chamadas ao Apps Script.
  * Se o servidor recusar ("naoAutorizado"), abre um pequeno login e repete a chamada.
  *
@@ -53,16 +53,17 @@
     var antes = perfilGuardado();
     if (antes === 'vendedor') irParaVendedor();
     if (antes) { if (depois) depois(antes); return; }
-    var id = '_perfil' + Date.now(), tag = document.createElement('script');
-    window[id] = function (d) {
-      try { delete window[id]; } catch (e) { window[id] = void 0; }
-      tag.parentNode && tag.parentNode.removeChild(tag);
+    function recebido(d) {
       var p = d && d.sucesso && d.dados && d.dados.perfil;
       if (p) { guardarPerfil(p); if (p === 'vendedor') irParaVendedor(); }
       if (depois) depois(p || '');
-    };
+    }
+    var url = comToken(AUTH_URL + '?acao=meuPerfil');
+    if (window.Api && Api.chamar) { Api.chamar(url, function (erro, d) { recebido(erro ? null : d); }); return; }
+    var id = '_perfil' + Date.now(), tag = document.createElement('script');
+    window[id] = function (d) { try { delete window[id]; } catch (e) { window[id] = void 0; } tag.parentNode && tag.parentNode.removeChild(tag); recebido(d); };
     tag.onerror = function () { try { delete window[id]; } catch (e) { window[id] = void 0; } tag.parentNode && tag.parentNode.removeChild(tag); if (depois) depois(''); };
-    tag.src = comToken(AUTH_URL + '?acao=meuPerfil') + '&callback=' + id + '&_=' + Date.now();
+    tag.src = url + '&callback=' + id + '&_=' + Date.now();
     document.head.appendChild(tag);
   }
   function sair() {
