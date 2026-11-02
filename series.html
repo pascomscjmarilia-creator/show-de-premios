@@ -4,10 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Folhas de Série — Show de Prêmios</title>
-<!-- series.html — Versão 1.0
+<!-- series.html — Versão 1.1 (QR Code de cadastro em cada folha)
      Gera as folhas de série (4 cartelas por folha A4) a partir da planilha, para imprimir ou salvar em PDF.
      Pede login (CPF e senha pessoal). -->
 <script src="acesso.js"></script>
+<script src="qr-lib.js"></script>
+<script src="qrgen.js"></script>
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #eee4e3; color: #292120; }
@@ -40,6 +42,13 @@
   .tab .c.free { background: #f1f1f1; font-size: 10pt; color: #555; }
   .h0 { background: #b91c1c; } .h1 { background: #c1340e; } .h2 { background: #9a2a0c; } .h3 { background: #b45309; } .h4 { background: #7e22ce; }
   .folha-rodape { font-size: 8pt; color: #666; text-align: center; margin-top: 2mm; }
+  .folha-qr { display: flex; align-items: center; gap: 5mm; border-top: 1.2px dashed #777; margin-top: 2mm; padding-top: 2.5mm; }
+  .folha-qr .qr { flex: none; width: 27mm; height: 27mm; }
+  .folha-qr .qr svg { width: 100%; height: 100%; display: block; }
+  .folha-qr .txt { font-size: 10pt; line-height: 1.3; color: #222; }
+  .folha-qr .txt b { color: #4a0f0b; font-size: 11.5pt; }
+  .folha-qr .link { font-size: 6.5pt; color: #777; word-break: break-all; margin-top: 1mm; }
+  .folha-qr.sem { color: #a32d2d; font-size: 9pt; }
 
   @page { size: A4; margin: 0; }
   @media print {
@@ -111,13 +120,25 @@ function htmlCartela(c, serie) {
     '<div class="tab">' + cab + celulas + '</div></div>';
 }
 
-function htmlFolha(s) {
+/* Endereço da página pública do comprador (mesma pasta desta tela) */
+function baseComprador() { return new URL('comprador.html', location.href).href; }
+
+function htmlQR(serie, codigo) {
+  if (!codigo) return '<div class="folha-qr sem">QR Code indisponível para esta série (código não encontrado).</div>';
+  var link = QRLink.linkComprador(baseComprador(), serie, codigo);
+  return '<div class="folha-qr"><div class="qr">' + QRGen.svg(link, { modulo: 4, margem: 4 }) + '</div>' +
+    '<div class="txt"><b>Cadastre a sua série pelo celular</b><br>Aponte a câmera para o QR Code, confira o número da série e digite só o seu <b>nome</b> e <b>celular</b>.' +
+    '<div class="link">Se o QR Code não abrir, digite: ' + esc(link) + '</div></div></div>';
+}
+
+function htmlFolha(s, codigos) {
   var vazias = '';
   for (var i = s.cartelas.length; i < 4; i++) vazias += '<div class="cartela"></div>';
   return '<div class="folha">' +
     '<div class="folha-topo"><span class="serie">SÉRIE ' + esc(s.serie) + '</span>' +
     '<span class="evento">Show de Prêmios<br>Paróquia Sagrado Coração de Jesus · Marília-SP</span></div>' +
     '<div class="grade-folha">' + s.cartelas.map(function(c) { return htmlCartela(c, s.serie); }).join('') + vazias + '</div>' +
+    htmlQR(s.serie, codigos && codigos[s.serie]) +
     '<div class="folha-rodape">Série ' + esc(s.serie) + ' · cartelas ' + s.cartelas.map(function(c) { return esc(c.id); }).join(', ') + '</div>' +
   '</div>';
 }
@@ -135,9 +156,15 @@ function carregar() {
     }
     var series = data.dados.series || [];
     if (!series.length) { st.textContent = 'Nenhuma série nesse intervalo. Use "Organizar em séries" no Cadastro.'; return; }
-    document.getElementById('folhas').innerHTML = series.map(htmlFolha).join('');
-    document.getElementById('aviso').style.display = 'none';
-    st.textContent = '✅ ' + series.length + ' folha(s): série ' + series[0].serie + ' a ' + series[series.length - 1].serie;
+    st.textContent = 'Gerando os QR Codes…';
+    jsonp(API + '?acao=listarCodigosQR', function(err2, data2) {
+      var codigos = {}, semQR = false;
+      if (!err2 && data2 && data2.sucesso && data2.dados && data2.dados.series) data2.dados.series.forEach(function(x) { codigos[x.serie] = x.codigo; });
+      else semQR = true;
+      document.getElementById('folhas').innerHTML = series.map(function(x) { return htmlFolha(x, codigos); }).join('');
+      document.getElementById('aviso').style.display = 'none';
+      st.textContent = (semQR ? '⚠️ Folhas sem QR Code (servidor desatualizado: publique o backend 2.9.0). ' : '✅ ') + series.length + ' folha(s): série ' + series[0].serie + ' a ' + series[series.length - 1].serie;
+    });
   });
 }
 

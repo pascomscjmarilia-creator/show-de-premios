@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Cadastre sua série — Show de Prêmios</title>
+<!-- comprador.html — Versão 1.0
+     Página PÚBLICA aberta pelo QR Code da folha. O comprador vê o número da série (já preenchido pelo link),
+     informa nome e celular e confirma. Não tem login nem menu: só funciona com o código secreto da série. -->
+<script src="qr-lib.js"></script>
+<style>
+  :root { --vinho:#4a0f0b; --verm:#c1340e; --ouro:#e6bd34; --borda:#e6cfc8; --fundo:#f9efec; --txt:#2a1512; --mudo:#7a6560; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Segoe UI',Arial,sans-serif; background:var(--fundo); color:var(--txt); }
+  header { background:var(--vinho); color:#fff; padding:16px; text-align:center; }
+  header h1 { margin:0; font-size:19px; color:var(--ouro); }
+  header .sub { font-size:13px; color:rgba(255,255,255,.75); margin-top:2px; }
+  main { max-width:520px; margin:0 auto; padding:16px 14px 48px; }
+  .card { background:#fff; border:1px solid var(--borda); border-radius:14px; padding:18px 18px 20px; margin-bottom:14px; }
+  .serie { text-align:center; margin-bottom:6px; }
+  .serie .rot { font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--mudo); }
+  .serie .num { font-size:54px; font-weight:900; color:var(--verm); line-height:1.05; }
+  .serie .cart { font-size:13.5px; color:var(--mudo); }
+  label { display:block; font-size:13px; color:var(--mudo); margin-top:14px; }
+  input[type=text], input[type=tel] { width:100%; margin-top:4px; padding:14px; border:1px solid var(--borda); border-radius:10px; font-size:17px; font-family:inherit; color:var(--txt); background:#fff; }
+  input:focus { outline:2px solid var(--verm); border-color:var(--verm); }
+  .aceite { display:flex; gap:10px; align-items:flex-start; margin-top:16px; font-size:13.5px; line-height:1.4; color:var(--txt); }
+  .aceite input { width:22px; height:22px; margin-top:1px; flex:none; accent-color:var(--verm); }
+  .btn { width:100%; border:0; border-radius:12px; padding:16px; font-size:18px; font-weight:700; cursor:pointer; background:var(--verm); color:#fff; margin-top:18px; }
+  .btn:disabled { opacity:.55; }
+  #msg { margin-top:12px; font-size:15px; line-height:1.4; }
+  #msg.erro { background:#fbe9e7; color:#a32d2d; padding:12px 14px; border-radius:10px; }
+  .grande { text-align:center; padding:26px 18px; }
+  .grande .ico { font-size:46px; }
+  .grande h2 { margin:8px 0 6px; font-size:21px; color:var(--vinho); }
+  .grande p { margin:6px 0; font-size:15.5px; line-height:1.45; }
+  .ok h2 { color:#27500a; }
+  .oculto { display:none !important; }
+  .armadilha { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
+  footer { text-align:center; font-size:12px; color:var(--mudo); padding:0 16px 24px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎁 Show de Prêmios</h1>
+  <div class="sub">Paróquia Sagrado Coração de Jesus · Marília-SP</div>
+</header>
+
+<main>
+  <div class="card grande" id="carregando"><div class="ico">⏳</div><p>Conferindo a sua série…</p></div>
+
+  <div class="card grande oculto" id="invalido"><div class="ico">🔗</div><h2>Link não reconhecido</h2>
+    <p id="invalidoMsg">Escaneie de novo o QR Code da sua folha ou peça ajuda a quem vendeu.</p></div>
+
+  <div class="card grande oculto" id="jaFeito"><div class="ico">✅</div><h2>Esta série já foi cadastrada</h2>
+    <p>Se a folha é sua e você não fez este cadastro, procure a coordenação.</p></div>
+
+  <div class="card oculto" id="formulario">
+    <div class="serie"><div class="rot">Sua série</div><div class="num" id="numSerie">—</div><div class="cart" id="cartelas"></div></div>
+    <label for="fNome">Seu nome completo</label>
+    <input type="text" id="fNome" autocomplete="name" maxlength="80" placeholder="Nome e sobrenome">
+    <label for="fTel">Seu celular (com DDD)</label>
+    <input type="tel" id="fTel" inputmode="tel" autocomplete="tel-national" placeholder="(14) 99999-0000">
+    <div class="armadilha" aria-hidden="true"><label>Não preencha <input type="text" id="fSite" tabindex="-1" autocomplete="off"></label></div>
+    <label class="aceite"><input type="checkbox" id="fAceite"><span>Autorizo a Paróquia a usar meu nome e celular somente para o sorteio de prêmios e para avisar se eu ganhar.</span></label>
+    <button class="btn" id="btn" onclick="cadastrar()">Cadastrar minha série</button>
+    <div id="msg"></div>
+  </div>
+
+  <div class="card grande ok oculto" id="sucesso"><div class="ico">🎉</div><h2>Cadastro feito!</h2>
+    <p id="sucessoTxt"></p>
+    <p><b>Guarde a sua folha</b>: ela vale para todas as cartelas da série e é com ela que você concorre nas rodadas e nos prêmios.</p></div>
+</main>
+<footer>Boa sorte! 🍀</footer>
+
+<script>
+var API = 'https://script.google.com/macros/s/AKfycbxi282C_QHoo5Xm7bqinACTWwzNh9x32aWikssVJ7REoIH1lnOSucgPHslkhHvf8PSP/exec';
+var FRONT_VERSION = '1.0'; // versão deste arquivo comprador.html — atualizar a cada mudança
+var link = QRLink.lerLink(location.search);
+var enviando = false;
+
+function $(id) { return document.getElementById(id); }
+function so(id) { ['carregando', 'invalido', 'jaFeito', 'formulario', 'sucesso'].forEach(function(x) { $(x).classList.toggle('oculto', x !== id); }); }
+function erroDe(err, data, padrao) { return (data && data.dados && data.dados.mensagem) || (err && err.message) || padrao; }
+
+/* JSONP público (sem login), com nova tentativa se a rede falhar */
+function jsonp(url, cb, tentativa) {
+  tentativa = tentativa || 1;
+  var id = '_cb' + Date.now() + (Math.random() * 9999 | 0), tag = document.createElement('script'), fim = false, timer = null;
+  function limpar() { clearTimeout(timer); try { delete window[id]; } catch (e) { window[id] = void 0; } if (tag.parentNode) tag.parentNode.removeChild(tag); }
+  function falhou() {
+    if (fim) return; fim = true; limpar();
+    if (tentativa < 3) { setTimeout(function() { jsonp(url, cb, tentativa + 1); }, 1200 * tentativa); return; }
+    cb(new Error('Sem resposta do servidor. Confira a internet do celular e tente de novo.'));
+  }
+  window[id] = function(data) { if (fim) return; fim = true; limpar(); cb(null, data); };
+  tag.onerror = falhou; timer = setTimeout(falhou, 20000);
+  tag.src = url + '&callback=' + id + '&_=' + Date.now();
+  document.head.appendChild(tag);
+}
+
+function iniciar() {
+  if (!link) { so('invalido'); return; }
+  jsonp(API + '?acao=consultarSerieQR&serie=' + link.serie + '&codigo=' + encodeURIComponent(link.codigo), function(err, data) {
+    if (err) { $('invalidoMsg').textContent = err.message; so('invalido'); return; }
+    if (!data || !data.sucesso) { $('invalidoMsg').textContent = erroDe(err, data, 'Link inválido.'); so('invalido'); return; }
+    var d = data.dados;
+    if (d.situacao !== 'livre') { so('jaFeito'); return; }
+    $('numSerie').textContent = d.serie;
+    $('cartelas').textContent = d.cartelas && d.cartelas.length ? 'Cartelas ' + d.cartelas[0] + ' a ' + d.cartelas[d.cartelas.length - 1] : '';
+    so('formulario');
+  });
+}
+
+function mensagem(t) { $('msg').textContent = t || ''; $('msg').className = t ? 'erro' : ''; }
+
+function cadastrar() {
+  if (enviando || !link) return;
+  var nome = $('fNome').value.trim().replace(/\s+/g, ' '), dig = $('fTel').value.replace(/\D/g, '');
+  if (nome.length < 3) { mensagem('Digite o seu nome completo.'); $('fNome').focus(); return; }
+  if (dig.length < 10) { mensagem('Digite o celular com DDD.'); $('fTel').focus(); return; }
+  if (!$('fAceite').checked) { mensagem('Marque a autorização para continuar.'); return; }
+  enviando = true; $('btn').disabled = true; $('btn').textContent = 'Cadastrando…'; mensagem('');
+  jsonp(API + '?acao=cadastrarPorQR&serie=' + link.serie + '&codigo=' + encodeURIComponent(link.codigo)
+      + '&nome=' + encodeURIComponent(nome) + '&telefone=' + encodeURIComponent(dig) + '&aceite=sim&site=' + encodeURIComponent($('fSite').value),
+    function(err, data) {
+      enviando = false; $('btn').disabled = false; $('btn').textContent = 'Cadastrar minha série';
+      if (err || !data || !data.sucesso) {
+        var m = erroDe(err, data, 'Não foi possível cadastrar. Tente de novo.');
+        if (/já foi cadastrada/.test(m)) { so('jaFeito'); return; }
+        mensagem(m); return;
+      }
+      var d = data.dados;
+      $('sucessoTxt').textContent = 'A série ' + d.serie + ' (cartelas ' + d.cartelas[0] + ' a ' + d.cartelas[d.cartelas.length - 1] + ') foi cadastrada em nome de ' + d.nome + '.';
+      so('sucesso');
+    });
+}
+
+$('fTel').addEventListener('input', function() { this.value = QRLink.mascaraTelefone(this.value); });
+iniciar();
+</script>
+</body>
+</html>

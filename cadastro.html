@@ -138,7 +138,7 @@
   <div>
     <h1>Venda de Cartelas — Show de Prêmios</h1>
     <p>Paróquia Sagrado Coração de Jesus · Marília-SP</p>
-    <p style="font-size:11px;color:rgba(255,255,255,.5);margin-top:3px" id="verInfo">cadastro.html v1.11 · API: verificando…</p>
+    <p style="font-size:11px;color:rgba(255,255,255,.5);margin-top:3px" id="verInfo">cadastro.html v1.12 · API: verificando…</p>
   </div>
   <a class="header-voltar" href="index.html" title="Voltar para a tela principal">🏠</a>
 </div>
@@ -338,7 +338,7 @@
 <script src="acesso.js"></script>
 <script>
 var API = 'https://script.google.com/macros/s/AKfycbxi282C_QHoo5Xm7bqinACTWwzNh9x32aWikssVJ7REoIH1lnOSucgPHslkhHvf8PSP/exec';
-var FRONT_VERSION = '1.11'; // versão deste arquivo cadastro.html — atualizar a cada mudança
+var FRONT_VERSION = '1.12'; // versão deste arquivo cadastro.html — atualizar a cada mudança
 
 var cartelaAtual  = null;
 var historicoSessao = [];
@@ -796,7 +796,7 @@ function gerarSeriesLote() {
       return;
     }
     var d = data.dados;
-    res.textContent = '✅ ' + d.totalSeries + ' séries criadas (de ' + d.primeiraSerie + ' a ' + d.ultimaSerie + '), cartelas #' + d.primeiroId + ' a #' + d.ultimoId + '.';
+    res.textContent = '✅ ' + d.totalSeries + ' séries criadas (de ' + d.primeiraSerie + ' a ' + d.ultimaSerie + '), cartelas #' + d.primeiroId + ' a #' + d.ultimoId + '.' + (d.qrGerados ? ' O QR Code de cada série já foi gerado: imprima em Folhas de Série.' : '');
     toast('✅ ' + d.totalSeries + ' séries geradas!');
     carregarEstatisticas();
   });
@@ -823,7 +823,7 @@ function organizarSeries() {
         return;
       }
       var r = data2.dados;
-      res.textContent = '✅ ' + r.series + ' séries criadas (de ' + r.primeiraSerie + ' a ' + r.ultimaSerie + ')' + (r.cartelasSemSerie ? '; ' + r.cartelasSemSerie + ' cartela(s) sem série.' : '.');
+      res.textContent = '✅ ' + r.series + ' séries criadas (de ' + r.primeiraSerie + ' a ' + r.ultimaSerie + ')' + (r.cartelasSemSerie ? '; ' + r.cartelasSemSerie + ' cartela(s) sem série.' : '.') + (r.qrGerados ? ' O QR Code de cada série já foi gerado: imprima em Folhas de Série.' : '');
       toast('✅ Cartelas organizadas em séries!');
     });
   });

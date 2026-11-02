@@ -20,6 +20,7 @@
 /* Mude a VERSAO a cada edição. Ela aparece no cadastro, no verificador e no painel
  * ("API: ..."), então dá para conferir se a nova versão foi mesmo publicada.
  * Changelog:
+ *   2.9.0 (2026-11-01) — cadastro pelo comprador via QR Code: cada série tem um código secreto (coluna codigo_qr); listarCodigosQR (equipe) entrega os códigos; consultarSerieQR e cadastrarPorQR são PÚBLICAS e só funcionam com o código certo da série. Nunca sobrescrevem venda; entram como "a receber".
  *   2.8.0 (2026-11-01) — perfil de vendedor: CPFs listados na aba "Vendedores" só podem consultar série, vender, ver as próprias vendas e desfazer a última venda (desfazerVenda); as demais ações são recusadas. Nova ação meuPerfil.
  *   2.7.0 (2026-11-01) — painel do vendedor: situacaoSeries (livre/vendida, sem dados pessoais), venderSerie (recusa série já vendida, valida celular, grava log na aba Vendas_log) e minhasVendas.
  *   2.6.0 (2026-10-29) — ganhadores: o sorteio de séries também é registrado (fase "sorteio", com prêmio) e listarGanhadores alimenta a tela ganhadores.html.
@@ -34,7 +35,7 @@
  *                        pessoais. Desligado por padrão: ligue EXIGIR_TOKEN depois de testar.
  *   2.0.1 (2026-10-26) — doGet único: repassa ?action= (login) para o Auth.gs.
  *   2.0.0 (2026-10-26) — script único na planilha nova: cartelas, patrocinadores e vídeos. */
-var VERSAO = '2.8.0 (01/11/2026)';
+var VERSAO = '2.9.0 (01/11/2026)';
 
 /* ── Proteção de acesso ───────────────────────────────────────────────
  * false = tudo aberto como antes (modo de transição).
@@ -47,12 +48,16 @@ var PROTEGIDAS = {
   adicionarVideo: 1, removerVideo: 1,
   buscarSerie: 1, atualizarSerie: 1, cadastrarSeriesEmLote: 1, organizarSeries: 1, listarSeries: 1,
   registrarGanhador: 1, listarVendas: 1, liberarSerie: 1, marcarSerieSorteada: 1, listarGanhadores: 1,
-  situacaoSeries: 1, venderSerie: 1, minhasVendas: 1, desfazerVenda: 1, meuPerfil: 1
+  situacaoSeries: 1, venderSerie: 1, minhasVendas: 1, desfazerVenda: 1, meuPerfil: 1,
+  listarCodigosQR: 1
 };
+/* Ações PÚBLICAS (sem login): consultarSerieQR e cadastrarPorQR. Ficam fora de PROTEGIDAS de propósito e dependem do código secreto da série. */
 /* Ações que um VENDEDOR (CPF listado na aba "Vendedores") pode usar. Todas as outras protegidas são recusadas para ele. */
 var ACOES_VENDEDOR = { situacaoSeries: 1, venderSerie: 1, minhasVendas: 1, desfazerVenda: 1, meuPerfil: 1 };
 var ABA_VENDEDORES = 'Vendedores';
 var MINUTOS_DESFAZER = 10;
+var VENDEDOR_QR = 'Cadastro pelo comprador (QR)';
+var LIMITE_QR_POR_MINUTO = 120;
 var TOKEN_HORAS_ADMIN = 12; /* administradores não têm prazo de acesso: o token vale 12 h */
 var ABA_CARTELAS = 'Cartelas';
 var ABA_PATROCINIO = 'Lista_Patrocinio';
@@ -101,6 +106,9 @@ function doGet(e) {
       case 'minhasVendas':            out = ok(minhasVendas_(p)); break;
       case 'desfazerVenda':           out = ok(desfazerVenda_(p)); break;
       case 'meuPerfil':               out = ok(meuPerfil_(p)); break;
+      case 'listarCodigosQR':         out = ok(listarCodigosQR_(p)); break;
+      case 'consultarSerieQR':        out = ok(consultarSerieQR_(p)); break;
+      case 'cadastrarPorQR':          out = ok(cadastrarPorQR_(p)); break;
       case 'listarVendas':            out = ok(listarVendas_()); break;
       case 'liberarSerie':            out = ok(liberarSerie_(p)); break;
       case 'marcarSerieSorteada':     out = ok(marcarSerieSorteada_(p.serie)); break;
@@ -627,6 +635,8 @@ function organizarSeries_(p) {
     }
     sh.getRange(2, cs + 1, n, 1).setValues(serieCol);
     sh.getRange(2, cp + 1, n, 1).setValues(posCol);
+    codigosQR_(sh, null); /* o QR Code de cada série nasce junto com ela */
+    resumo.qrGerados = true;
     return resumo;
   });
 }
@@ -658,7 +668,9 @@ function cadastrarSeriesLote_(quantidade) {
       }
     }
     sh.getRange(sh.getLastRow() + 1, 1, linhas.length, linhas[0].length).setValues(linhas);
+    codigosQR_(sh, null); /* o QR Code de cada série nasce junto com ela */
     return {
+      qrGerados: true,
       totalSeries: qtd, totalCartelas: linhas.length,
       primeiraSerie: maxSerie + 1, ultimaSerie: maxSerie + qtd, primeiroId: primeiroId, ultimoId: id - 1
     };
@@ -732,6 +744,7 @@ function venderSerie_(p) {
   var nome = limparNome_(p.nome), vendedor = limparNome_(p.vendedor), dig = soDigitos_(p.telefone);
   if (!nome) throw new Error('Informe o nome do comprador.');
   if (nome.length > 80) throw new Error('O nome do comprador pode ter até 80 letras.');
+  if (/^[=+\-@]/.test(nome) || /^[=+\-@]/.test(vendedor)) throw new Error('O nome não pode começar com = + - ou @.');
   if (dig.length < 10 || dig.length > 11) throw new Error('Celular inválido. Digite o DDD e o número (10 ou 11 dígitos).');
   if (!vendedor) throw new Error('Informe o nome do vendedor.');
   if (vendedor.length > 60) throw new Error('O nome do vendedor pode ter até 60 letras.');
@@ -859,6 +872,134 @@ function desfazerVenda_(p) {
       lista.join(', '), '', '', '', limparNome_(p.vendedor), 'desfeita', info ? '***' + String(info.c).slice(-4) : ''
     ]);
     return { series: lista, desfeita: true };
+  });
+}
+
+/* ───────────── cadastro pelo comprador (QR Code) ─────────────
+ * Cada série ganha um código secreto de 12 caracteres (coluna codigo_qr, igual nas 4 cartelas). O QR Code
+ * impresso na folha leva a comprador.html?s=<série>&c=<código>. Sem o código certo, nada funciona. */
+function novoCodigoQR_() {
+  var u = '';
+  try { u = String(Utilities.getUuid()).replace(/-/g, '').toLowerCase(); } catch (e) { u = ''; }
+  while (u.length < 12) u += Math.floor(Math.random() * 36).toString(36);
+  u = u.slice(0, 12);
+  /* sempre começa com letra: a planilha não pode confundir o código com um número */
+  if (/^\d/.test(u)) u = String.fromCharCode(97 + Number(u.charAt(0))) + u.slice(1);
+  return u;
+}
+function codigoQRValido_(c) { return /^[a-z0-9]{12}$/.test(String(c == null ? '' : c)); }
+function igualConstante_(a, b) {
+  a = String(a); b = String(b);
+  var dif = a.length ^ b.length;
+  for (var i = 0; i < a.length && i < b.length; i++) dif |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return dif === 0;
+}
+function limiteQR_() {
+  try {
+    var c = CacheService.getScriptCache(), v = Number(c.get('qr_rate') || 0);
+    if (v >= LIMITE_QR_POR_MINUTO) return false;
+    c.put('qr_rate', String(v + 1), 60);
+  } catch (e) {}
+  return true;
+}
+
+/* Equipe: devolve (e cria, se faltar) o código de cada série pedida. Sem "serie", devolve de todas. */
+function listarCodigosQR_(p) {
+  return comLock_(function () {
+    var sh = aba_(ABA_CARTELAS);
+    return codigosQR_(sh, String(p.serie || '').trim() ? parseSeries_(p.serie) : null);
+  });
+}
+/* Garante o código de cada série (todas, se lista for null). O chamador já deve estar com o lock.
+ * É chamada também ao GERAR séries, para o QR Code já nascer com a série. */
+function codigosQR_(sh, listaPedida) {
+  {
+    garantirColuna_(sh, 'codigo_qr');
+    var d = ler_(sh);
+    exigirSerie_(d);
+    var c = d.colunas, n = d.linhas.length;
+    var lista = listaPedida;
+    if (!lista) {
+      var vistos = {};
+      d.linhas.forEach(function (l) { var s = Number(l[c.serie]) || 0; if (s) vistos[s] = 1; });
+      lista = Object.keys(vistos).map(Number).sort(function (a, b) { return a - b; });
+    }
+    var mapa = linhasPorSerie_(d, lista);
+    var faltam = lista.filter(function (s) { return !mapa[s].length; });
+    if (faltam.length) throw new Error('Série(s) não encontrada(s): ' + faltam.join(', ') + '.');
+    var col = c.codigo_qr, novos = {}, saida = [], mudou = false;
+    lista.forEach(function (s) {
+      var idx = mapa[s], cod = '';
+      idx.forEach(function (i) { var v = String(d.linhas[i][col] || '').trim(); if (!cod && codigoQRValido_(v)) cod = v; });
+      if (!cod) cod = novoCodigoQR_();
+      var todasTem = idx.every(function (i) { return String(d.linhas[i][col] || '').trim() === cod; });
+      if (!todasTem) { idx.forEach(function (i) { novos[i] = cod; }); mudou = true; }
+      saida.push({ serie: s, codigo: cod });
+    });
+    if (mudou) {
+      var arr = [];
+      for (var i = 0; i < n; i++) arr.push([novos[i] !== undefined ? novos[i] : (d.linhas[i][col] === undefined ? '' : d.linhas[i][col])]);
+      var r = sh.getRange(2, col + 1, n, 1);
+      r.setNumberFormat('@');
+      r.setValues(arr);
+    }
+    return { series: saida };
+  }
+}
+
+/* Confere série + código. Mesma mensagem para série inexistente e código errado (não ajuda a adivinhar). */
+function serieDoQR_(p) {
+  var n = Number(p.serie), cod = String(p.codigo == null ? '' : p.codigo).trim().toLowerCase();
+  var invalido = 'Link inválido. Peça ajuda a quem vendeu a folha.';
+  if (!n || n < 1 || n !== Math.floor(n) || !codigoQRValido_(cod)) throw new Error(invalido);
+  if (!limiteQR_()) throw new Error('Muitas tentativas agora. Aguarde um minuto e tente de novo.');
+  var sh = aba_(ABA_CARTELAS);
+  var d = ler_(sh);
+  if (!('serie' in d.colunas) || !('codigo_qr' in d.colunas)) throw new Error(invalido);
+  var mapa = linhasPorSerie_(d, [n]);
+  var idx = mapa[n];
+  if (!idx.length) throw new Error(invalido);
+  var ok = idx.every(function (i) { return igualConstante_(String(d.linhas[i][d.colunas.codigo_qr] || '').trim().toLowerCase(), cod); });
+  if (!ok) throw new Error(invalido);
+  return { sh: sh, d: d, idx: idx, serie: n };
+}
+
+/* PÚBLICA: o comprador abre o link e vê a série (sem dados de ninguém). */
+function consultarSerieQR_(p) {
+  var r = serieDoQR_(p);
+  var vend = r.idx.filter(function (i) { return temComprador_(r.d, i); }).length;
+  return {
+    serie: r.serie,
+    cartelas: r.idx.map(function (i) { return Number(r.d.linhas[i][r.d.colunas.id_cartela]); }),
+    situacao: vend === 0 ? 'livre' : 'cadastrada'
+  };
+}
+
+/* PÚBLICA: o comprador informa nome e celular. Só grava se a série ainda estiver livre; entra como "a receber". */
+function cadastrarPorQR_(p) {
+  if (String(p.site || '') !== '') throw new Error('Não foi possível concluir.'); /* campo-armadilha para robôs */
+  var nome = limparNome_(p.nome), dig = soDigitos_(p.telefone);
+  if (!nome) throw new Error('Digite o seu nome.');
+  if (nome.length < 3 || nome.length > 80) throw new Error('Digite o nome completo (de 3 a 80 letras).');
+  if (!/^[\p{L}][\p{L}\p{M}\s.'’\-]*$/u.test(nome)) throw new Error('O nome pode ter só letras, espaços, ponto, apóstrofo e hífen.');
+  if (dig.length < 10 || dig.length > 11) throw new Error('Celular inválido. Digite o DDD e o número.');
+  if (String(p.aceite) !== 'sim') throw new Error('Marque a autorização para usarmos seus dados no sorteio.');
+  var telefone = formatarTelefone_(dig);
+  return comLock_(function () {
+    var r = serieDoQR_(p);
+    var ocupada = r.idx.some(function (i) { return temComprador_(r.d, i); });
+    if (ocupada) throw new Error('Esta série já foi cadastrada. Se for sua, procure a coordenação.');
+    garantirColuna_(r.sh, 'vendedor');
+    var d = ler_(r.sh);
+    var idx = linhasPorSerie_(d, [r.serie])[r.serie];
+    var hoje = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'yyyy-MM-dd');
+    aplicarVenda_(r.sh, d, idx, { nome: nome, telefone: telefone, paga: 'false', dataVenda: hoje, vendedor: VENDEDOR_QR });
+    var cartelas = idx.map(function (i) { return Number(d.linhas[i][d.colunas.id_cartela]); });
+    abaVendasLog_().appendRow([
+      Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm:ss'),
+      String(r.serie), cartelas.join(' · '), nome, telefone, VENDEDOR_QR, 'não', 'QR'
+    ]);
+    return { serie: r.serie, cartelas: cartelas, nome: nome };
   });
 }
 
