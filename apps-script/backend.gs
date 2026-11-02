@@ -20,6 +20,7 @@
 /* Mude a VERSAO a cada edição. Ela aparece no cadastro, no verificador e no painel
  * ("API: ..."), então dá para conferir se a nova versão foi mesmo publicada.
  * Changelog:
+ *   2.8.0 (2026-11-01) — perfil de vendedor: CPFs listados na aba "Vendedores" só podem consultar série, vender, ver as próprias vendas e desfazer a última venda (desfazerVenda); as demais ações são recusadas. Nova ação meuPerfil.
  *   2.7.0 (2026-11-01) — painel do vendedor: situacaoSeries (livre/vendida, sem dados pessoais), venderSerie (recusa série já vendida, valida celular, grava log na aba Vendas_log) e minhasVendas.
  *   2.6.0 (2026-10-29) — ganhadores: o sorteio de séries também é registrado (fase "sorteio", com prêmio) e listarGanhadores alimenta a tela ganhadores.html.
  *   2.5.0 (2026-10-29) — sorteio por série: marcarSerieSorteada (marca as 4 cartelas) e "sorteada" na lista de séries.
@@ -33,7 +34,7 @@
  *                        pessoais. Desligado por padrão: ligue EXIGIR_TOKEN depois de testar.
  *   2.0.1 (2026-10-26) — doGet único: repassa ?action= (login) para o Auth.gs.
  *   2.0.0 (2026-10-26) — script único na planilha nova: cartelas, patrocinadores e vídeos. */
-var VERSAO = '2.7.0 (01/11/2026)';
+var VERSAO = '2.8.0 (01/11/2026)';
 
 /* ── Proteção de acesso ───────────────────────────────────────────────
  * false = tudo aberto como antes (modo de transição).
@@ -46,8 +47,12 @@ var PROTEGIDAS = {
   adicionarVideo: 1, removerVideo: 1,
   buscarSerie: 1, atualizarSerie: 1, cadastrarSeriesEmLote: 1, organizarSeries: 1, listarSeries: 1,
   registrarGanhador: 1, listarVendas: 1, liberarSerie: 1, marcarSerieSorteada: 1, listarGanhadores: 1,
-  situacaoSeries: 1, venderSerie: 1, minhasVendas: 1
+  situacaoSeries: 1, venderSerie: 1, minhasVendas: 1, desfazerVenda: 1, meuPerfil: 1
 };
+/* Ações que um VENDEDOR (CPF listado na aba "Vendedores") pode usar. Todas as outras protegidas são recusadas para ele. */
+var ACOES_VENDEDOR = { situacaoSeries: 1, venderSerie: 1, minhasVendas: 1, desfazerVenda: 1, meuPerfil: 1 };
+var ABA_VENDEDORES = 'Vendedores';
+var MINUTOS_DESFAZER = 10;
 var TOKEN_HORAS_ADMIN = 12; /* administradores não têm prazo de acesso: o token vale 12 h */
 var ABA_CARTELAS = 'Cartelas';
 var ABA_PATROCINIO = 'Lista_Patrocinio';
@@ -69,6 +74,15 @@ function doGet(e) {
         dados: { mensagem: 'Não autorizado. Faça login novamente.', naoAutorizado: true }
       }, p.callback);
     }
+    if (EXIGIR_TOKEN && PROTEGIDAS[p.acao] && !ACOES_VENDEDOR[p.acao]) {
+      var quemChama = verificarToken_(p.token);
+      if (quemChama && !quemChama.a && ehVendedor_(quemChama.c)) {
+        return responder_({
+          sucesso: false,
+          dados: { mensagem: 'Seu acesso é só para registrar vendas.', perfilRestrito: true }
+        }, p.callback);
+      }
+    }
     switch (p.acao) {
       case 'listarCartelas':          out = ok(listarCartelas_(p)); break;
       case 'buscarCartela':           out = ok(buscarCartela_(p.id)); break;
@@ -85,6 +99,8 @@ function doGet(e) {
       case 'situacaoSeries':          out = ok(situacaoSeries_(p)); break;
       case 'venderSerie':             out = ok(venderSerie_(p)); break;
       case 'minhasVendas':            out = ok(minhasVendas_(p)); break;
+      case 'desfazerVenda':           out = ok(desfazerVenda_(p)); break;
+      case 'meuPerfil':               out = ok(meuPerfil_(p)); break;
       case 'listarVendas':            out = ok(listarVendas_()); break;
       case 'liberarSerie':            out = ok(liberarSerie_(p)); break;
       case 'marcarSerieSorteada':     out = ok(marcarSerieSorteada_(p.serie)); break;
@@ -760,6 +776,90 @@ function minhasVendas_(p) {
     vendedor: limparNome_(p.vendedor), total: minhas.length, pagas: pagas, aReceber: minhas.length - pagas,
     series: minhas.map(function (s) { return { serie: s.serie, cartelas: s.cartelas, comprador: s.comprador, telefone: s.telefone, paga: s.paga, dataVenda: s.dataVenda }; })
   };
+}
+
+/* Perfil: CPF listado na aba "Vendedores" (coluna cpf) = vendedor. Administrador nunca é restrito. */
+function abaVendedores_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(ABA_VENDEDORES);
+  if (!sh) {
+    sh = ss.insertSheet(ABA_VENDEDORES);
+    sh.appendRow(['cpf', 'nome']);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+function ehVendedor_(cpf) {
+  var dig = soDigitos_(cpf);
+  if (!dig) return false;
+  var cache = null, chave = 'vend_' + dig;
+  try { cache = CacheService.getScriptCache(); var c = cache.get(chave); if (c !== null) return c === '1'; } catch (e) { cache = null; }
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ABA_VENDEDORES);
+  var eh = false;
+  if (sh && sh.getLastRow() > 1) {
+    var v = sh.getRange(2, 1, sh.getLastRow() - 1, 1).getDisplayValues();
+    for (var i = 0; i < v.length; i++) if (soDigitos_(v[i][0]) === dig) { eh = true; break; }
+  }
+  try { if (cache) cache.put(chave, eh ? '1' : '0', 60); } catch (e) {}
+  return eh;
+}
+function meuPerfil_(p) {
+  abaVendedores_(); /* cria a aba na primeira vez, para o coordenador encontrá-la pronta */
+  var info = verificarToken_(p.token);
+  var vend = !!(info && !info.a && ehVendedor_(info.c));
+  return { perfil: vend ? 'vendedor' : 'equipe' };
+}
+
+/* "dd/MM/yyyy HH:mm:ss" (horário de Brasília) → minutos desde 1970, para comparar sem depender do fuso do projeto. */
+function minutosDoTexto_(t) {
+  var m = String(t).match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})$/);
+  if (!m) return null;
+  return Date.UTC(Number(m[3]), Number(m[2]) - 1, Number(m[1]), Number(m[4]), Number(m[5]), Number(m[6])) / 60000;
+}
+
+/* Desfaz a venda que o PRÓPRIO vendedor acabou de registrar (até MINUTOS_DESFAZER minutos depois).
+ * Vendas antigas ou de outras pessoas só a coordenação libera (Vendas por Série). */
+function desfazerVenda_(p) {
+  var lista = parseSeries_(p.serie);
+  var quem = semAcento_(p.vendedor);
+  if (!quem) throw new Error('Informe o vendedor.');
+  return comLock_(function () {
+    var sh = aba_(ABA_CARTELAS);
+    var d = ler_(sh);
+    exigirSerie_(d);
+    var mapa = linhasPorSerie_(d, lista);
+    var faltam = lista.filter(function (s) { return !mapa[s].length; });
+    if (faltam.length) throw new Error('Série(s) não encontrada(s): ' + faltam.join(', ') + '.');
+    var log = abaVendasLog_();
+    var linhasLog = log.getLastRow() > 1 ? log.getRange(2, 1, log.getLastRow() - 1, 7).getDisplayValues() : [];
+    var agora = minutosDoTexto_(Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm:ss'));
+    var motivo = 'Só dá para desfazer a sua própria venda, em até ' + MINUTOS_DESFAZER + ' minutos. Fale com a coordenação.';
+    lista.forEach(function (s) {
+      var idx = mapa[s];
+      var meus = idx.every(function (i) { return semAcento_(d.linhas[i][d.colunas.vendedor]) === quem && temComprador_(d, i); });
+      if (!meus) throw new Error('A série ' + s + ' não é uma venda sua. ' + motivo);
+      var recente = false;
+      for (var k = linhasLog.length - 1; k >= 0 && !recente; k--) {
+        var l = linhasLog[k];
+        if (l[6] === 'desfeita') continue;
+        var series = String(l[1]).split(/[,\s]+/).filter(Boolean).map(Number);
+        if (series.indexOf(s) < 0) continue;
+        var t = minutosDoTexto_(l[0]);
+        recente = semAcento_(l[5]) === quem && t !== null && agora !== null && agora - t <= MINUTOS_DESFAZER;
+        break; /* só a venda mais recente dessa série conta */
+      }
+      if (!recente) throw new Error('A venda da série ' + s + ' passou do prazo. ' + motivo);
+    });
+    var idxs = [];
+    lista.forEach(function (s) { idxs = idxs.concat(mapa[s]); });
+    aplicarVenda_(sh, d, idxs, { nome: '', telefone: '', paga: 'false', dataVenda: '', vendedor: '' });
+    var info = verificarToken_(p.token);
+    log.appendRow([
+      Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm:ss'),
+      lista.join(', '), '', '', '', limparNome_(p.vendedor), 'desfeita', info ? '***' + String(info.c).slice(-4) : ''
+    ]);
+    return { series: lista, desfeita: true };
+  });
 }
 
 /* ───────────── ganhadores ─────────────

@@ -535,7 +535,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
             <button class="btn btn-ghost" onclick="testarScript()"><i class="ti ti-plug"></i> Testar</button>
           </div>
           <div class="feedback" id="fbScript"></div>
-          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.17 · API: verificando…</div>
+          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.18 · API: verificando…</div>
         </div>
       </div>
 
@@ -1015,6 +1015,7 @@ function openMain(session){
     updateExpiry(session.expiresAt);
     const t=setInterval(()=>{ if(Date.now()>session.expiresAt){ clearInterval(t); forceLogout('Sessão expirada.'); } else updateExpiry(session.expiresAt); },60000);
   }
+  try { Acesso.verificarPerfil(); } catch(e) {}
   initGame();
 }
 
@@ -1721,7 +1722,7 @@ async function testarPlanilha(){
    INIT AUTH
 ══════════════════════════════════════════════════════════ */
 /* Versão do arquivo e do Apps Script (a ação desconhecida responde só { versao }) */
-const FRONT_VERSION = '1.17'; /* versão deste painel.html — atualizar a cada mudança */
+const FRONT_VERSION = '1.18'; /* versão deste painel.html — atualizar a cada mudança */
 (function(){
   _scJsonp(SCRIPT_PATROC + '?acao=_ping', function(err, data){
     const el = document.getElementById('verInfo');
