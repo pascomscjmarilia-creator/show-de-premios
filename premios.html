@@ -15,13 +15,13 @@
 <script src="acesso.js"></script>
 <script src="premios-lib.js"></script>
 <style>
-  :root { --verde-escuro:#0A3D1A; --verde-medio:#1A6B30; --verde-claro:#A8E063; --borda:#d5dfc7; --txt:#1f2a1f; --mudo:#667; }
+  :root { --verde-escuro:#0b2545; --verde-medio:#1a6dbb; --verde-claro:#e6bd34; --borda:#c8d2de; --txt:#202429; --mudo:#667; }
   * { box-sizing: border-box; }
-  body { margin:0; font-family:'Segoe UI',Arial,sans-serif; background:#f3f6ee; color:var(--txt); }
+  body { margin:0; font-family:'Segoe UI',Arial,sans-serif; background:#eef2f6; color:var(--txt); }
   header { background:var(--verde-escuro); color:#fff; padding:12px 16px; display:flex; align-items:center; gap:12px; }
   header h1 { margin:0; font-size:18px; color:var(--verde-claro); }
   header .sub { font-size:11px; color:rgba(255,255,255,.55); }
-  header a { margin-left:auto; color:#cfe8b6; text-decoration:none; font-size:22px; }
+  header a { margin-left:auto; color:#b9cee5; text-decoration:none; font-size:22px; }
   main { max-width:760px; margin:0 auto; padding:14px 16px 40px; }
   .card { background:#fff; border:1px solid var(--borda); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
   .card h2 { margin:0 0 10px; font-size:16px; color:var(--verde-escuro); }
@@ -29,18 +29,18 @@
   input[type=text], textarea { width:100%; margin-top:3px; padding:11px 12px; border:1px solid var(--borda); border-radius:8px; font-size:16px; font-family:inherit; }
   textarea { min-height:70px; resize:vertical; }
   .btn { border:0; border-radius:10px; padding:12px 16px; font-weight:600; cursor:pointer; font-size:15px; background:var(--verde-medio); color:#fff; }
-  .btn.sec { background:#e5efd9; color:var(--verde-escuro); }
+  .btn.sec { background:#dae3ee; color:var(--verde-escuro); }
   .btn.perigo { background:#fbe9e7; color:#a32d2d; }
   .btn.peq { padding:8px 12px; font-size:13px; }
   .btn:disabled { opacity:.55; cursor:default; }
   .linha { display:flex; gap:8px; flex-wrap:wrap; }
   .foto-area { margin-top:6px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
-  #preview { width:150px; height:112px; border-radius:10px; border:1px dashed #b9c9a5; background:#f1f6ea center/cover no-repeat; display:flex; align-items:center; justify-content:center; color:#9aa; font-size:12px; text-align:center; }
+  #preview { width:150px; height:112px; border-radius:10px; border:1px dashed #a7b6c7; background:#ebf0f5 center/cover no-repeat; display:flex; align-items:center; justify-content:center; color:#9aa; font-size:12px; text-align:center; }
   #msg { margin-top:10px; font-size:14px; min-height:20px; }
   #msg.ok { color:#27500A; } #msg.erro { color:#a32d2d; }
-  .item { display:flex; gap:12px; align-items:center; padding:10px 0; border-top:1px solid #edf1e6; }
+  .item { display:flex; gap:12px; align-items:center; padding:10px 0; border-top:1px solid #e7ebf0; }
   .item:first-child { border-top:0; }
-  .thumb { width:84px; height:63px; border-radius:8px; background:#eef2e6 center/cover no-repeat; flex:none; display:flex; align-items:center; justify-content:center; color:#aab; font-size:22px; }
+  .thumb { width:84px; height:63px; border-radius:8px; background:#e7ecf1 center/cover no-repeat; flex:none; display:flex; align-items:center; justify-content:center; color:#aab; font-size:22px; }
   .item .info { flex:1; min-width:0; }
   .item .nome { font-weight:700; overflow-wrap:anywhere; }
   .item .desc { font-size:12.5px; color:var(--mudo); overflow-wrap:anywhere; }
@@ -54,7 +54,7 @@
 <header>
   <div>
     <h1>🎁 Prêmios</h1>
-    <div class="sub" id="verInfo">premios.html v1.0 · conectando…</div>
+    <div class="sub" id="verInfo">premios.html v1.1 · conectando…</div>
   </div>
   <a href="index.html" title="Voltar para a tela principal">🏠</a>
 </header>
@@ -94,7 +94,7 @@
 </main>
 
 <script>
-var FRONT_VERSION = '1.0'; // versão deste arquivo premios.html — atualizar a cada mudança
+var FRONT_VERSION = '1.1'; // versão deste arquivo premios.html — atualizar a cada mudança
 var db = null, lista = [], fotoNova = null /* { img, thumb } */, editandoId = null, noTelaoId = null;
 var CANAL = null;
 try { CANAL = new BroadcastChannel('bingo-canal'); } catch (e) {}
