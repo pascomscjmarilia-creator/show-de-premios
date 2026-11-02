@@ -10,24 +10,24 @@
 <script src="acesso.js"></script>
 <style>
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #e3e8ee; color: #202429; }
+  body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #eee4e3; color: #292120; }
 
   /* ── barra de controle (não sai na impressão) ── */
-  .barra { position: sticky; top: 0; z-index: 5; background: #0b2545; color: #fff; padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .barra { position: sticky; top: 0; z-index: 5; background: #4a0f0b; color: #fff; padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
   .barra h1 { font-size: 16px; margin: 0 14px 0 0; color: #e6bd34; }
   .barra label { font-size: 13px; display: flex; gap: 6px; align-items: center; }
   .barra input { width: 80px; padding: 6px; border-radius: 6px; border: 0; font-size: 14px; }
-  .barra button { padding: 8px 14px; border: 0; border-radius: 8px; font-weight: 600; cursor: pointer; background: #e6bd34; color: #0b2545; }
-  .barra button.sec { background: #1a6dbb; color: #fff; }
-  .barra a { color: #b9cee5; font-size: 13px; margin-left: auto; text-decoration: none; }
-  #status { font-size: 13px; color: #d9e6f4; }
-  .aviso { max-width: 760px; margin: 18px auto; background: #fff; border-left: 5px solid #1a6dbb; padding: 12px 16px; border-radius: 0 8px 8px 0; font-size: 14px; }
+  .barra button { padding: 8px 14px; border: 0; border-radius: 8px; font-weight: 600; cursor: pointer; background: #e6bd34; color: #4a0f0b; }
+  .barra button.sec { background: #c1340e; color: #fff; }
+  .barra a { color: #e5bfb9; font-size: 13px; margin-left: auto; text-decoration: none; }
+  #status { font-size: 13px; color: #f4ddd9; }
+  .aviso { max-width: 760px; margin: 18px auto; background: #fff; border-left: 5px solid #c1340e; padding: 12px 16px; border-radius: 0 8px 8px 0; font-size: 14px; }
 
   /* ── folhas ── */
   #folhas { padding: 14px 0 40px; }
   .folha { width: 210mm; height: 297mm; margin: 0 auto 14px; background: #fff; padding: 8mm; box-shadow: 0 2px 10px rgba(0,0,0,.25); display: flex; flex-direction: column; page-break-after: always; break-after: page; }
-  .folha-topo { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 3px solid #0b2545; padding-bottom: 2mm; margin-bottom: 3mm; }
-  .folha-topo .serie { font-size: 24pt; font-weight: 800; color: #0b2545; }
+  .folha-topo { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 3px solid #4a0f0b; padding-bottom: 2mm; margin-bottom: 3mm; }
+  .folha-topo .serie { font-size: 24pt; font-weight: 800; color: #4a0f0b; }
   .folha-topo .evento { font-size: 9pt; color: #444; text-align: right; }
   .grade-folha { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 0; }
   .cartela { border: 1.2px dashed #777; padding: 4mm; display: flex; flex-direction: column; }
@@ -38,7 +38,7 @@
   .tab .h { text-align: center; color: #fff; font-weight: 800; font-size: 15pt; border-radius: 2mm; padding: 0.6mm 0; }
   .tab .c { display: flex; align-items: center; justify-content: center; border: 1px solid #999; border-radius: 1.5mm; font-size: 17pt; font-weight: 700; }
   .tab .c.free { background: #f1f1f1; font-size: 10pt; color: #555; }
-  .h0 { background: #b91c1c; } .h1 { background: #1d4ed8; } .h2 { background: #14579a; } .h3 { background: #b45309; } .h4 { background: #7e22ce; }
+  .h0 { background: #b91c1c; } .h1 { background: #c1340e; } .h2 { background: #9a2a0c; } .h3 { background: #b45309; } .h4 { background: #7e22ce; }
   .folha-rodape { font-size: 8pt; color: #666; text-align: center; margin-top: 2mm; }
 
   @page { size: A4; margin: 0; }

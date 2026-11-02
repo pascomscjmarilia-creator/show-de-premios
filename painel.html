@@ -16,29 +16,29 @@
 <style>
 /* ══ RESET ══ */
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0e14;color:#e5e5e5;font-size:14px}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#140b0a;color:#e5e5e5;font-size:14px}
 
 /* ══ LAYOUT ══ */
 .app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
-.topbar{display:flex;align-items:center;gap:10px;padding:8px 16px;background:#121922;border-bottom:1px solid #1d2837;flex-shrink:0;flex-wrap:wrap}
+.topbar{display:flex;align-items:center;gap:10px;padding:8px 16px;background:#221412;border-bottom:1px solid #37201d;flex-shrink:0;flex-wrap:wrap}
 .topbar-title{font-weight:700;font-size:14px;color:#e9d8a6;flex:1;min-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .topbar-links{display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0}
 .main{display:flex;flex:1;overflow:hidden}
-.sidebar{width:260px;min-width:220px;background:#0e131a;border-right:1px solid #17202d;display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+.sidebar{width:260px;min-width:220px;background:#1a100e;border-right:1px solid #2d1a17;display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
 .content{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
 
 /* ══ SESSÃO ══ */
-.session-bar{display:none;align-items:center;gap:8px;padding:6px 16px;background:#14233d;border-bottom:1px solid #1f3558;font-size:12px;color:#aaa;flex-shrink:0}
+.session-bar{display:none;align-items:center;gap:8px;padding:6px 16px;background:#3d1a14;border-bottom:1px solid #58271f;font-size:12px;color:#aaa;flex-shrink:0}
 .session-bar.show{display:flex}
-.session-name{color:#7db9f0;font-weight:700}
+.session-name{color:#f4a58f;font-weight:700}
 
 /* ══ LOGIN ══ */
-.login-overlay{position:fixed;inset:0;background:#0a0e14;z-index:999;display:flex;align-items:center;justify-content:center}
+.login-overlay{position:fixed;inset:0;background:#140b0a;z-index:999;display:flex;align-items:center;justify-content:center}
 .login-overlay.hidden{display:none}
-.login-box{background:#121922;border:1px solid #1d2837;border-radius:12px;padding:32px;width:340px;display:flex;flex-direction:column;gap:14px}
+.login-box{background:#221412;border:1px solid #37201d;border-radius:12px;padding:32px;width:340px;display:flex;flex-direction:column;gap:14px}
 .login-box h2{font-size:18px;color:#e9d8a6;text-align:center}
-.login-box input{background:#0c1016;border:1px solid #233043;border-radius:8px;padding:10px 12px;color:#e5e5e5;font-size:14px;width:100%;outline:none}
-.login-box input:focus{border-color:#7db9f0}
+.login-box input{background:#160d0c;border:1px solid #432723;border-radius:8px;padding:10px 12px;color:#e5e5e5;font-size:14px;width:100%;outline:none}
+.login-box input:focus{border-color:#f4a58f}
 .login-box input.err{border-color:#f87171}
 .login-feedback{font-size:12px;padding:8px 10px;border-radius:6px;display:none}
 .login-feedback.show{display:block}
@@ -54,39 +54,39 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:opacity .15s,transform .1s;white-space:nowrap}
 .btn:active{transform:scale(.97)}
 .btn:disabled{opacity:.4;cursor:not-allowed}
-.btn-primary{background:#1a6dbb;color:#fff}
-.btn-primary:hover:not(:disabled){background:#14579a}
+.btn-primary{background:#c1340e;color:#fff}
+.btn-primary:hover:not(:disabled){background:#9a2a0c}
 .btn-danger{background:#dc2626;color:#fff}
 .btn-danger:hover:not(:disabled){background:#b91c1c}
 .btn-warning{background:#d97706;color:#fff}
 .btn-warning:hover:not(:disabled){background:#b45309}
-.btn-blue{background:#1d4ed8;color:#fff}
-.btn-blue:hover:not(:disabled){background:#1e40af}
-.btn-ghost{background:#17202d;color:#ccc;border:1px solid #233043}
-.btn-ghost:hover:not(:disabled){background:#1d2837}
+.btn-blue{background:#c1340e;color:#fff}
+.btn-blue:hover:not(:disabled){background:#9a2a0c}
+.btn-ghost{background:#2d1a17;color:#ccc;border:1px solid #432723}
+.btn-ghost:hover:not(:disabled){background:#37201d}
 .btn-gold{background:#b45309;color:#fff}
 .btn-gold:hover:not(:disabled){background:#92400e}
 .btn-sm{padding:5px 10px;font-size:12px}
 .btn-full{width:100%;justify-content:center}
-.btn-sortear{font-size:22px;padding:18px;background:linear-gradient(135deg,#1a6dbb,#14579a);color:#fff;border-radius:12px;justify-content:center;gap:10px;letter-spacing:.03em}
+.btn-sortear{font-size:22px;padding:18px;background:linear-gradient(135deg,#c1340e,#9a2a0c);color:#fff;border-radius:12px;justify-content:center;gap:10px;letter-spacing:.03em}
 
 /* ══ CARDS ══ */
-.card{background:#121922;border:1px solid #1d2837;border-radius:10px;padding:14px}
+.card{background:#221412;border:1px solid #37201d;border-radius:10px;padding:14px}
 .card-title{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:#666;margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .card-title i{font-size:14px}
 
 /* ══ NÚMERO GRANDE ══ */
 .big-num-wrap{text-align:center;padding:10px 0}
 .big-num-letter{font-size:28px;font-weight:700;color:#555;letter-spacing:.1em}
-.big-num-value{font-size:120px;font-weight:900;line-height:1;color:#17202d;transition:color .3s;font-variant-numeric:tabular-nums}
+.big-num-value{font-size:120px;font-weight:900;line-height:1;color:#2d1a17;transition:color .3s;font-variant-numeric:tabular-nums}
 .big-num-value.live{color:#fff}
 .big-num-value.pop{animation:bpop .3s ease-out}
 @keyframes bpop{0%{transform:scale(1)}45%{transform:scale(1.1)}100%{transform:scale(1)}}
 
 /* ══ TABELA SHOW DE PRÊMIOS ══ */
 .board-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
-.board-hdr{text-align:center;font-weight:700;font-size:11px;padding:4px;border-radius:4px;background:#0c1016}
-.board-cell{text-align:center;font-size:11px;font-weight:600;padding:5px 2px;border-radius:4px;background:#090c11;color:#233043;border:1px solid #121922;cursor:default}
+.board-hdr{text-align:center;font-weight:700;font-size:11px;padding:4px;border-radius:4px;background:#160d0c}
+.board-cell{text-align:center;font-size:11px;font-weight:600;padding:5px 2px;border-radius:4px;background:#110a09;color:#432723;border:1px solid #221412;cursor:default}
 .board-cell.hit{color:#fff;border-color:transparent}
 
 /* ══ HISTÓRICO ══ */
@@ -98,13 +98,13 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
 .badge-green{background:#1e3a1e;color:#4ade80}
 .badge-red{background:#3a1e1e;color:#f87171}
 .badge-yellow{background:#3a2e1a;color:#fbbf24}
-.badge-blue{background:#1e2a3a;color:#60a5fa}
+.badge-blue{background:#3a221e;color:#e0887a}
 
 /* ══ SIDEBAR NAV ══ */
-.nav-section{padding:10px 12px 4px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#2e405a}
+.nav-section{padding:10px 12px 4px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#5a342e}
 .nav-item{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;color:#888;font-size:13px;transition:background .15s,color .15s;border-left:3px solid transparent}
-.nav-item:hover{background:#141c28;color:#ccc}
-.nav-item.active{background:#14233d;color:#7db9f0;border-left-color:#7db9f0}
+.nav-item:hover{background:#281714;color:#ccc}
+.nav-item.active{background:#3d1a14;color:#f4a58f;border-left-color:#f4a58f}
 .nav-item i{font-size:16px;flex-shrink:0}
 
 /* ══ PAINÉIS (tabs) ══ */
@@ -114,13 +114,13 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
 /* ══ INPUTS ══ */
 .field{display:flex;flex-direction:column;gap:4px}
 .field label{font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.06em}
-.field input,.field select,.field textarea{background:#0c1016;border:1px solid #233043;border-radius:8px;padding:8px 10px;color:#e5e5e5;font-size:13px;outline:none;width:100%}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:#7db9f0}
+.field input,.field select,.field textarea{background:#160d0c;border:1px solid #432723;border-radius:8px;padding:8px 10px;color:#e5e5e5;font-size:13px;outline:none;width:100%}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#f4a58f}
 .row{display:flex;gap:8px}
 .row .field{flex:1}
 
 /* ══ SORTEIO CARTELA ══ */
-.cartela-result{background:#0c1016;border:1px solid #1d2837;border-radius:10px;padding:16px;text-align:center;display:none}
+.cartela-result{background:#160d0c;border:1px solid #37201d;border-radius:10px;padding:16px;text-align:center;display:none}
 .cartela-result.show{display:block}
 .cartela-result-num{font-size:72px;font-weight:900;color:#fbbf24;line-height:1;font-variant-numeric:tabular-nums}
 .cartela-result-nome{font-size:22px;font-weight:700;color:#fff;margin-top:6px}
@@ -136,17 +136,17 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
 
 /* ══ CONTADORES ══ */
 .stats-row{display:flex;gap:8px;flex-wrap:wrap}
-.stat-box{flex:1;min-width:80px;background:#0c1016;border:1px solid #17202d;border-radius:8px;padding:10px;text-align:center}
-.stat-num{font-size:28px;font-weight:900;color:#7db9f0}
+.stat-box{flex:1;min-width:80px;background:#160d0c;border:1px solid #2d1a17;border-radius:8px;padding:10px;text-align:center}
+.stat-num{font-size:28px;font-weight:900;color:#f4a58f}
 .stat-label{font-size:10px;color:#555;text-transform:uppercase;margin-top:2px}
 
 /* ══ FASE BADGE ══ */
-.fase-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:13px;font-weight:700;background:#1e2a3a;color:#60a5fa;border:1px solid #2a3a4a}
+.fase-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:13px;font-weight:700;background:#3a221e;color:#e0887a;border:1px solid #4a2e2a}
 
 /* ══ CONEXÃO ══ */
 .conn-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.conn-dot{width:8px;height:8px;border-radius:50%;background:#2e405a;flex-shrink:0}
-.conn-dot.ok{background:#7db9f0}
+.conn-dot{width:8px;height:8px;border-radius:50%;background:#5a342e;flex-shrink:0}
+.conn-dot.ok{background:#f4a58f}
 .conn-dot.err{background:#f87171}
 .conn-dot.loading{background:#fbbf24;animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
@@ -154,22 +154,22 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
 
 /* ══ SCROLLBAR ══ */
 ::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-track{background:#0c1016}
-::-webkit-scrollbar-thumb{background:#233043;border-radius:2px}
+::-webkit-scrollbar-track{background:#160d0c}
+::-webkit-scrollbar-thumb{background:#432723;border-radius:2px}
 .btn-ajuda{margin-left:auto;width:30px;height:30px;border-radius:50%;border:2px solid #fbbf24;background:#1a1608;color:#fbbf24;font-size:17px;font-weight:900;cursor:pointer;line-height:1;display:inline-flex;align-items:center;justify-content:center;align-self:center;flex:none}
-.btn-ajuda:hover{background:#fbbf24;color:#0c1016}
+.btn-ajuda:hover{background:#fbbf24;color:#160d0c}
 .ajuda-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
-.ajuda-box{background:#0f151d;border:1px solid #27374d;border-radius:14px;width:min(640px,100%);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.6)}
-.ajuda-topo{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #1d2837;font-weight:800;color:#fbbf24;font-size:16px}
+.ajuda-box{background:#1d110f;border:1px solid #4d2c27;border-radius:14px;width:min(640px,100%);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+.ajuda-topo{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #37201d;font-weight:800;color:#fbbf24;font-size:16px}
 .ajuda-topo button{background:none;border:none;color:#aaa;font-size:20px;cursor:pointer}
 .ajuda-topo button:hover{color:#fff}
 .ajuda-corpo{overflow-y:auto;padding:6px 16px 16px;color:#d4d4d4;font-size:13px}
 .ajuda-corpo h3{margin:16px 0 6px;font-size:13px;color:#e9d8a6;text-transform:uppercase;letter-spacing:.06em}
 .ajuda-corpo p{margin:4px 0 6px;color:#999}
 .ajuda-tbl{width:100%;border-collapse:collapse}
-.ajuda-tbl td{padding:6px 8px;border-bottom:1px solid #18212e;vertical-align:top}
+.ajuda-tbl td{padding:6px 8px;border-bottom:1px solid #2e1b18;vertical-align:top}
 .ajuda-tbl td:first-child{width:42%;white-space:nowrap}
-.ajuda-corpo kbd{background:#1d2837;border:1px solid #2e405a;border-bottom-width:2px;border-radius:5px;padding:1px 6px;font-family:inherit;font-size:12px;font-weight:700;color:#fbbf24}
+.ajuda-corpo kbd{background:#37201d;border:1px solid #5a342e;border-bottom-width:2px;border-radius:5px;padding:1px 6px;font-family:inherit;font-size:12px;font-weight:700;color:#fbbf24}
 .ajuda-rodape{margin-top:14px!important;font-size:12px}
 </style>
 </head>
@@ -207,7 +207,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
 <div class="app">
   <!-- Barra de sessão -->
   <div class="session-bar" id="sessionBar">
-    <i class="ti ti-user-check" style="color:#7db9f0"></i>
+    <i class="ti ti-user-check" style="color:#f4a58f"></i>
     <span class="session-name" id="sessionName"></span>
     <span id="sessionExpiry" style="font-size:11px;color:#555"></span>
     <span style="flex:1"></span>
@@ -222,7 +222,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
       <a href="datashow.html" target="_blank" class="btn btn-blue btn-sm" title="Abrir a tela principal — depois use os botões de baixo pra trocar entre Sorteio/Patrocinadores/Vídeo/Entrevista"><i class="ti ti-device-tv"></i> Abrir DataShow</a>
       <a href="index.html" class="btn btn-ghost btn-sm" id="btnMenu" onclick="return voltarAoMenu()" title="Voltar ao menu principal">🏠 Menu</a>
     </div>
-    <div class="topbar-links" style="border-top:1px solid #1d2837;width:100%;padding-top:6px;margin-top:2px">
+    <div class="topbar-links" style="border-top:1px solid #37201d;width:100%;padding-top:6px;margin-top:2px">
       <span style="font-size:11px;color:#666;align-self:center;margin-right:2px">Trocar tela em todos os aparelhos:</span>
       <button class="btn btn-ghost btn-sm" onclick="trocarTela('datashow.html')" title="Todas as telas conectadas passam a mostrar o Sorteio">
         <i class="ti ti-device-tv"></i> Sorteio
@@ -275,7 +275,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
 
       <!-- Mini-board sidebar -->
       <div style="padding:12px;margin-top:auto">
-        <div style="font-size:10px;color:#2e405a;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Pedras sorteadas</div>
+        <div style="font-size:10px;color:#5a342e;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Pedras sorteadas</div>
         <div class="board-grid" id="miniBoard"></div>
       </div>
     </div>
@@ -339,7 +339,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
             <div style="display:flex;gap:10px;align-items:stretch;padding:14px;border:2px solid #fbbf24;border-radius:14px;background:#1a1608;box-shadow:0 0 22px rgba(251,191,36,.25)">
               <input type="number" id="inputManual" min="1" max="75" inputmode="numeric"
                 placeholder="1–75"
-                style="background:#050a11;border:2px solid #fbbf24;border-radius:10px;padding:8px 10px;color:#fbbf24;font-size:76px;line-height:1.1;font-weight:900;flex:1;min-width:0;text-align:center;outline:none;font-variant-numeric:tabular-nums;-moz-appearance:textfield"
+                style="background:#100706;border:2px solid #fbbf24;border-radius:10px;padding:8px 10px;color:#fbbf24;font-size:76px;line-height:1.1;font-weight:900;flex:1;min-width:0;text-align:center;outline:none;font-variant-numeric:tabular-nums;-moz-appearance:textfield"
                 onkeydown="if(event.key==='Enter') confirmarManual()">
               <button class="btn btn-primary" onclick="confirmarManual()" style="font-size:24px;font-weight:900;padding:12px 26px;border-radius:10px;flex-direction:column;gap:4px;justify-content:center">
                 <i class="ti ti-check" style="font-size:34px"></i> CONFIRMAR
@@ -393,7 +393,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
           <div class="card-title"><i class="ti ti-chart-bar"></i> Estatísticas</div>
           <div class="stats-row">
             <div class="stat-box"><div class="stat-num" id="statSorteados">0</div><div class="stat-label">Sorteados</div></div>
-            <div class="stat-box"><div class="stat-num" id="statRestam" style="color:#60a5fa">75</div><div class="stat-label">Restam</div></div>
+            <div class="stat-box"><div class="stat-num" id="statRestam" style="color:#e0887a">75</div><div class="stat-label">Restam</div></div>
           </div>
         </div>
 
@@ -412,7 +412,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
           <!-- Contador -->
           <div class="stats-row" id="cartelaStats">
             <div class="stat-box"><div class="stat-num" id="ctTotal" style="color:#888">—</div><div class="stat-label">No sorteio</div></div>
-            <div class="stat-box"><div class="stat-num" id="ctDisp" style="color:#7db9f0">—</div><div class="stat-label">Concorrendo</div></div>
+            <div class="stat-box"><div class="stat-num" id="ctDisp" style="color:#f4a58f">—</div><div class="stat-label">Concorrendo</div></div>
             <div class="stat-box"><div class="stat-num" id="ctSort" style="color:#fbbf24">—</div><div class="stat-label">Sorteadas</div></div>
           </div>
 
@@ -428,7 +428,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
           <div style="font-size:12px;color:#777;margin-top:6px" id="scStatusMsg"></div>
           <div class="field" style="margin-top:10px">
             <label for="scPremioSel" style="font-size:12px;color:#aaa">Prêmio em disputa (cadastrado em Prêmios, com foto)</label>
-            <select id="scPremioSel" onchange="escolherPremio()" style="width:100%;padding:9px;border-radius:8px;background:#121922;color:#e5e5e5;border:1px solid #233043">
+            <select id="scPremioSel" onchange="escolherPremio()" style="width:100%;padding:9px;border-radius:8px;background:#221412;color:#e5e5e5;border:1px solid #432723">
               <option value="">— nenhum —</option>
             </select>
             <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
@@ -468,11 +468,11 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
         <div class="card" style="margin-top:14px">
           <div class="card-title"><i class="ti ti-trophy"></i> Ganhadores no telão</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <select id="ganhTipo" style="padding:8px;border-radius:8px;background:#121922;color:#e5e5e5;border:1px solid #233043">
+            <select id="ganhTipo" style="padding:8px;border-radius:8px;background:#221412;color:#e5e5e5;border:1px solid #432723">
               <option value="todos">Todos</option><option value="quina">Quinas</option>
               <option value="cheia">Cartelas cheias</option><option value="sorteio">Sorteio de séries</option>
             </select>
-            <select id="ganhRodada" style="padding:8px;border-radius:8px;background:#121922;color:#e5e5e5;border:1px solid #233043">
+            <select id="ganhRodada" style="padding:8px;border-radius:8px;background:#221412;color:#e5e5e5;border:1px solid #432723">
               <option value="0">Todas as rodadas</option><option value="1">1ª rodada</option><option value="2">2ª rodada</option>
               <option value="3">3ª rodada</option><option value="4">4ª rodada</option>
             </select>
@@ -489,7 +489,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
           <div class="card-title"><i class="ti ti-list"></i> Séries sorteadas (<span id="scHistoricoCount">0</span>)</div>
           <table style="width:100%;border-collapse:collapse;font-size:13px">
             <thead><tr style="color:#777;text-align:left"><th style="padding:4px 10px">Série</th><th style="padding:4px 10px">Comprador</th><th style="padding:4px 10px">Telefone</th><th style="padding:4px 10px">Hora</th></tr></thead>
-            <tbody id="scHistoricoBody"><tr><td colspan="4" style="text-align:center;color:#2e405a;padding:16px">Nenhum sorteio ainda.</td></tr></tbody>
+            <tbody id="scHistoricoBody"><tr><td colspan="4" style="text-align:center;color:#5a342e;padding:16px">Nenhum sorteio ainda.</td></tr></tbody>
           </table>
         </div>
 
@@ -535,7 +535,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
             <button class="btn btn-ghost" onclick="testarScript()"><i class="ti ti-plug"></i> Testar</button>
           </div>
           <div class="feedback" id="fbScript"></div>
-          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.16 · API: verificando…</div>
+          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.17 · API: verificando…</div>
         </div>
       </div>
 
@@ -592,7 +592,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
           <div class="card-title"><i class="ti ti-search"></i> Buscar vídeo/música no YouTube</div>
           <div style="display:flex;gap:8px;margin-bottom:10px">
             <input type="text" id="ytBuscaInput" placeholder="Digite o nome da música ou vídeo..."
-              style="flex:1;background:#0c1016;border:1px solid #233043;border-radius:6px;color:#e5e5e5;padding:8px 12px;font-size:13px"
+              style="flex:1;background:#160d0c;border:1px solid #432723;border-radius:6px;color:#e5e5e5;padding:8px 12px;font-size:13px"
               onkeydown="if(event.key==='Enter') ytBuscar()">
             <button class="btn btn-primary btn-sm" onclick="ytBuscar()">
               <i class="ti ti-search"></i> Buscar
@@ -661,7 +661,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Ro
           </div>
           <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
             <input type="text" id="entrevistaSala" placeholder="nome-da-sala (sem espaços/acentos)"
-              style="flex:1;min-width:220px;background:#0c1016;border:1px solid #233043;border-radius:6px;color:#e5e5e5;padding:8px 12px;font-size:13px">
+              style="flex:1;min-width:220px;background:#160d0c;border:1px solid #432723;border-radius:6px;color:#e5e5e5;padding:8px 12px;font-size:13px">
             <button class="btn btn-ghost btn-sm" onclick="entrevistaCopiarLink()">
               <i class="ti ti-copy"></i> Copiar link do convidado
             </button>
@@ -711,7 +711,7 @@ function ytBuscar() {
         var id = item.id.videoId;
         var titulo = item.snippet.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
         var thumb = item.snippet.thumbnails.default.url;
-        return '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:#0c1016;border-radius:6px;border:1px solid #17202d;flex-wrap:wrap">' +
+        return '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:#160d0c;border-radius:6px;border:1px solid #2d1a17;flex-wrap:wrap">' +
           '<img src="' + thumb + '" style="width:70px;height:52px;border-radius:4px;object-fit:cover;flex-shrink:0">' +
           '<div style="flex:1;min-width:140px;font-size:12px;color:#e5e5e5;line-height:1.4">' + item.snippet.title + '</div>' +
           '<div style="display:flex;gap:6px;flex-shrink:0">' +
@@ -786,8 +786,8 @@ function vidRenderLista() {
     return;
   }
   el.innerHTML = _vid.lista.map(function(v) {
-    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #17202d">' +
-      '<div style="width:80px;height:45px;background:#0c1016;border-radius:6px;overflow:hidden;flex-shrink:0">' +
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #2d1a17">' +
+      '<div style="width:80px;height:45px;background:#160d0c;border-radius:6px;overflow:hidden;flex-shrink:0">' +
         '<img src="https://img.youtube.com/vi/' + v.videoId + '/mqdefault.jpg" ' +
           'style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">' +
       '</div>' +
@@ -1175,7 +1175,7 @@ function buildNumPad() {
     const btn = document.createElement('button');
     btn.id = 'np' + n;
     btn.textContent = n;
-    btn.style.cssText = 'background:#0c1016;border:1px solid #17202d;border-radius:4px;color:#555;font-size:15px;font-weight:700;padding:9px 2px;cursor:pointer;font-variant-numeric:tabular-nums;transition:background .15s,color .15s';
+    btn.style.cssText = 'background:#160d0c;border:1px solid #2d1a17;border-radius:4px;color:#555;font-size:15px;font-weight:700;padding:9px 2px;cursor:pointer;font-variant-numeric:tabular-nums;transition:background .15s,color .15s';
     btn.onclick = () => {
       document.getElementById('inputManual').value = n;
       document.getElementById('inputManual').focus();
@@ -1195,7 +1195,7 @@ function paintNumPad() {
       btn.style.opacity = '0.5';
       btn.disabled = true;
     } else {
-      btn.style.background = '#0c1016';
+      btn.style.background = '#160d0c';
       btn.style.color = '#888';
       btn.style.opacity = '1';
       btn.disabled = false;
@@ -1258,12 +1258,12 @@ function mostrarModalReset(){
   var div = document.createElement('div');
   div.id = 'modalResetPedras';
   div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center';
-  div.innerHTML = '<div style="background:#121922;border:1px solid #233043;border-radius:12px;padding:28px 32px;text-align:center;max-width:340px;width:90%">' +
+  div.innerHTML = '<div style="background:#221412;border:1px solid #432723;border-radius:12px;padding:28px 32px;text-align:center;max-width:340px;width:90%">' +
     '<div style="font-size:32px;margin-bottom:12px">🔄</div>' +
     '<div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:8px">Resetar pedras sorteadas?</div>' +
     '<div style="font-size:13px;color:#888;margin-bottom:24px">Isso limpará os números em todas as telas conectadas.</div>' +
     '<div style="display:flex;gap:10px;justify-content:center">' +
-      '<button onclick="fecharModalReset()" style="background:#233043;color:#ccc;border:none;border-radius:8px;padding:10px 24px;cursor:pointer;font-size:14px">Cancelar</button>' +
+      '<button onclick="fecharModalReset()" style="background:#432723;color:#ccc;border:none;border-radius:8px;padding:10px 24px;cursor:pointer;font-size:14px">Cancelar</button>' +
       '<button onclick="executarReset()" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:10px 24px;cursor:pointer;font-size:14px;font-weight:700">Resetar</button>' +
     '</div>' +
   '</div>';
@@ -1308,13 +1308,13 @@ function mostrarModalRodada(r){
   var div=document.createElement('div');
   div.id='modalRodada';
   div.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center';
-  div.innerHTML='<div style="background:#121922;border:1px solid #233043;border-radius:12px;padding:28px 32px;text-align:center;max-width:360px;width:90%">'+
+  div.innerHTML='<div style="background:#221412;border:1px solid #432723;border-radius:12px;padding:28px 32px;text-align:center;max-width:360px;width:90%">'+
     '<div style="font-size:32px;margin-bottom:12px">🏁</div>'+
     '<div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:8px">Começar a '+r+'ª rodada?</div>'+
     '<div style="font-size:13px;color:#888;margin-bottom:24px">As pedras sorteadas serão zeradas em todas as telas, a fase volta para Quina e o Verificador passa a conferir só a '+r+'ª cartela de cada série.</div>'+
     '<div style="display:flex;gap:10px;justify-content:center">'+
-      '<button onclick="document.getElementById(\'modalRodada\').remove()" style="background:#233043;color:#ccc;border:none;border-radius:8px;padding:10px 24px;cursor:pointer;font-size:14px">Cancelar</button>'+
-      '<button onclick="confirmarRodada('+r+')" style="background:#1a6dbb;color:#fff;border:none;border-radius:8px;padding:10px 24px;cursor:pointer;font-size:14px;font-weight:700">Começar</button>'+
+      '<button onclick="document.getElementById(\'modalRodada\').remove()" style="background:#432723;color:#ccc;border:none;border-radius:8px;padding:10px 24px;cursor:pointer;font-size:14px">Cancelar</button>'+
+      '<button onclick="confirmarRodada('+r+')" style="background:#c1340e;color:#fff;border:none;border-radius:8px;padding:10px 24px;cursor:pointer;font-size:14px;font-weight:700">Começar</button>'+
     '</div></div>';
   document.body.appendChild(div);
 }
@@ -1607,7 +1607,7 @@ function _scRenderHistorico(){
   const cnt = document.getElementById('scHistoricoCount');
   if(cnt) cnt.textContent = _sc.historico.length;
   if(!_sc.historico.length){
-    el.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#2e405a;padding:16px">Nenhum sorteio ainda.</td></tr>';
+    el.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#5a342e;padding:16px">Nenhum sorteio ainda.</td></tr>';
     return;
   }
   el.innerHTML = _sc.historico.map(h=>`
@@ -1669,7 +1669,7 @@ function renderSponsorList(){
   const el=document.getElementById('sponsorList');
   if(!sponsors.length){ el.innerHTML='<div style="color:#555;font-size:12px">Nenhum patrocinador carregado.</div>'; return; }
   el.innerHTML=sponsors.map(s=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:#0c1016;border-radius:6px;border:1px solid #17202d">
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:#160d0c;border-radius:6px;border:1px solid #2d1a17">
       <span class="badge badge-blue" style="min-width:56px;justify-content:center">${Number(s.num)===0?'Coringa':'Pedra '+s.num}</span>
       <span style="font-weight:600;font-size:13px;color:#e5e5e5;flex:1">${s.name}</span>
       <span style="font-size:11px;color:#555">${s.phone||''}</span>
@@ -1721,7 +1721,7 @@ async function testarPlanilha(){
    INIT AUTH
 ══════════════════════════════════════════════════════════ */
 /* Versão do arquivo e do Apps Script (a ação desconhecida responde só { versao }) */
-const FRONT_VERSION = '1.16'; /* versão deste painel.html — atualizar a cada mudança */
+const FRONT_VERSION = '1.17'; /* versão deste painel.html — atualizar a cada mudança */
 (function(){
   _scJsonp(SCRIPT_PATROC + '?acao=_ping', function(err, data){
     const el = document.getElementById('verInfo');

@@ -6,10 +6,10 @@
 <title>Venda de Cartelas — Show de Prêmios</title>
 <style>
   :root {
-    --verde-escuro: #0b2545;
-    --verde-medio:  #1a6dbb;
+    --verde-escuro: #4a0f0b;
+    --verde-medio:  #c1340e;
     --verde-claro:  #e6bd34;
-    --verde-fundo:  #dfe8f2;
+    --verde-fundo:  #f6e4de;
     --branco:       #ffffff;
     --cinza-claro:  #f5f5f3;
     --cinza-borda:  #d3d1c7;
@@ -114,7 +114,7 @@
 
   /* ── Criar cartela ── */
   .criar-toggle { width: 100%; padding: 12px; background: var(--verde-fundo); color: var(--verde-escuro); border: 1px dashed var(--verde-medio); border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
-  .criar-toggle:hover { background: #cddbec; }
+  .criar-toggle:hover { background: #ecd1cd; }
   .criar-body { display: none; margin-top: 16px; }
   .criar-body.show { display: block; }
   .grade-gerador { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; max-width: 320px; margin: 0 auto 12px; }
@@ -138,7 +138,7 @@
   <div>
     <h1>Venda de Cartelas — Show de Prêmios</h1>
     <p>Paróquia Sagrado Coração de Jesus · Marília-SP</p>
-    <p style="font-size:11px;color:rgba(255,255,255,.5);margin-top:3px" id="verInfo">cadastro.html v1.10 · API: verificando…</p>
+    <p style="font-size:11px;color:rgba(255,255,255,.5);margin-top:3px" id="verInfo">cadastro.html v1.11 · API: verificando…</p>
   </div>
   <a class="header-voltar" href="index.html" title="Voltar para a tela principal">🏠</a>
 </div>
@@ -211,7 +211,7 @@
     </div>
 
     <!-- AVANÇADO: CORRIGIR UMA CARTELA ISOLADA -->
-    <details class="avancado" style="border:1px dashed var(--cinza-borda);border-radius:12px;padding:10px 12px;background:#f7f9fc">
+    <details class="avancado" style="border:1px dashed var(--cinza-borda);border-radius:12px;padding:10px 12px;background:#fcf8f7">
       <summary style="cursor:pointer;font-weight:600;color:var(--verde-escuro);font-size:13px">⚙️ Avançado: corrigir uma cartela isolada</summary>
       <div style="font-size:12px;color:var(--texto-sec);margin:8px 0 12px">Use só para acertar uma cartela específica. Para vender, use <b>Vendas por série</b>.</div>
       <div style="display:flex;flex-direction:column;gap:16px">
@@ -338,7 +338,7 @@
 <script src="acesso.js"></script>
 <script>
 var API = 'https://script.google.com/macros/s/AKfycbxi282C_QHoo5Xm7bqinACTWwzNh9x32aWikssVJ7REoIH1lnOSucgPHslkhHvf8PSP/exec';
-var FRONT_VERSION = '1.10'; // versão deste arquivo cadastro.html — atualizar a cada mudança
+var FRONT_VERSION = '1.11'; // versão deste arquivo cadastro.html — atualizar a cada mudança
 
 var cartelaAtual  = null;
 var historicoSessao = [];

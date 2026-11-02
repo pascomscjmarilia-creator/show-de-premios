@@ -9,13 +9,13 @@
      e séries sorteadas no Painel. Busca, filtros, CSV e modo de apresentação em tela cheia. Pede login. -->
 <script src="acesso.js"></script>
 <style>
-  :root { --verde-escuro:#0b2545; --verde-medio:#1a6dbb; --verde-claro:#e6bd34; --borda:#c8d2de; --txt:#202429; --mudo:#667; --ouro:#b7791f; }
+  :root { --verde-escuro:#4a0f0b; --verde-medio:#c1340e; --verde-claro:#e6bd34; --borda:#decbc8; --txt:#292120; --mudo:#667; --ouro:#b7791f; }
   * { box-sizing: border-box; }
-  body { margin:0; font-family:'Segoe UI',Arial,sans-serif; background:#eef2f6; color:var(--txt); }
+  body { margin:0; font-family:'Segoe UI',Arial,sans-serif; background:#f6efee; color:var(--txt); }
   header { background:var(--verde-escuro); color:#fff; padding:12px 20px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
   header h1 { margin:0; font-size:18px; color:var(--verde-claro); }
   header .sub { font-size:11px; color:rgba(255,255,255,.55); }
-  header a { margin-left:auto; color:#b9cee5; text-decoration:none; font-size:20px; }
+  header a { margin-left:auto; color:#e5bfb9; text-decoration:none; font-size:20px; }
   main { max-width:1150px; margin:0 auto; padding:16px; }
   .metricas { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:14px; }
   .metrica { background:#fff; border:1px solid var(--borda); border-radius:10px; padding:10px 14px; }
@@ -24,14 +24,14 @@
   .barra { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px; }
   .barra input[type=search] { flex:1; min-width:220px; padding:9px 12px; border:1px solid var(--borda); border-radius:8px; font-size:14px; }
   .barra select { padding:8px 10px; border:1px solid var(--borda); border-radius:8px; font-size:14px; background:#fff; }
-  .chip { border:1px solid #a7b6c7; background:#fff; border-radius:999px; padding:6px 14px; font-size:13px; cursor:pointer; color:#303943; }
+  .chip { border:1px solid #c7aba7; background:#fff; border-radius:999px; padding:6px 14px; font-size:13px; cursor:pointer; color:#433330; }
   .chip.on { background:var(--verde-medio); color:#fff; border-color:var(--verde-medio); }
   .btn { border:0; border-radius:8px; padding:9px 16px; font-weight:600; cursor:pointer; font-size:14px; background:var(--verde-medio); color:#fff; }
-  .btn.sec { background:#dae3ee; color:var(--verde-escuro); }
+  .btn.sec { background:#eeddda; color:var(--verde-escuro); }
   .tabela-wrap { background:#fff; border:1px solid var(--borda); border-radius:10px; overflow:auto; }
   table { width:100%; border-collapse:collapse; font-size:13.5px; }
-  thead th { position:sticky; top:0; background:#ebf0f5; text-align:left; padding:8px 10px; font-weight:600; color:#404954; border-bottom:1px solid var(--borda); white-space:nowrap; }
-  td { padding:8px 10px; border-bottom:1px solid #e7ebf0; vertical-align:top; }
+  thead th { position:sticky; top:0; background:#f5eceb; text-align:left; padding:8px 10px; font-weight:600; color:#544340; border-bottom:1px solid var(--borda); white-space:nowrap; }
+  td { padding:8px 10px; border-bottom:1px solid #f0e8e7; vertical-align:top; }
   .tag { font-size:12px; padding:2px 9px; border-radius:7px; white-space:nowrap; font-weight:600; }
   .t-quina { background:#fdf0d3; color:#7a5200; } .t-cheia { background:#ffe3cc; color:#8a3b00; } .t-sorteio { background:#e0e9fb; color:#1c3f8f; }
   .mudo { color:#9aa; }
@@ -40,7 +40,7 @@
   #msg.erro { color:#a32d2d; }
 
   /* ── Apresentação (tela cheia) ── */
-  #apres { position:fixed; inset:0; z-index:50; background:radial-gradient(circle at 50% 0%, #123a6b, #061a33 70%); color:#fff; display:none; flex-direction:column; }
+  #apres { position:fixed; inset:0; z-index:50; background:radial-gradient(circle at 50% 0%, #652218, #2b120e 70%); color:#fff; display:none; flex-direction:column; }
   #apres.on { display:flex; }
   #apres .topo { display:flex; align-items:center; gap:16px; padding:2.2vh 3vw; }
   #apres h2 { margin:0; font-size:clamp(22px,4.2vh,56px); color:#fde68a; letter-spacing:.04em; }
@@ -54,7 +54,7 @@
   .pill.cart { background:#fff; flex:1 1 100%; white-space:normal; overflow-wrap:anywhere; }
   .gcard { min-width:0; }
   .gcard .nome { font-size:clamp(20px,3.8vh,52px); font-weight:800; margin:.5vh 0; line-height:1.1; }
-  .gcard .det { font-size:clamp(13px,2.2vh,28px); color:#dbeafe; }
+  .gcard .det { font-size:clamp(13px,2.2vh,28px); color:#fde8e2; }
   .gcard .premio { margin-top:.6vh; font-size:clamp(14px,2.4vh,30px); color:#fcd34d; font-weight:700; }
   #apres .vazio { grid-column:1/-1; text-align:center; font-size:clamp(18px,3vh,36px); color:#9ca3af; padding-top:10vh; }
   #apres .rodape { padding:1vh 3vw 2vh; font-size:12px; color:rgba(255,255,255,.45); }
@@ -65,7 +65,7 @@
 <header>
   <div>
     <h1>🏆 Ganhadores</h1>
-    <div class="sub" id="verInfo">ganhadores.html v1.2 · API: verificando…</div>
+    <div class="sub" id="verInfo">ganhadores.html v1.3 · API: verificando…</div>
   </div>
   <a href="index.html" title="Voltar para a tela principal">🏠</a>
 </header>
@@ -115,7 +115,7 @@
 <script src="ganhadores-lib.js"></script>
 <script>
 var API = Acesso.authUrl;
-var FRONT_VERSION = '1.2'; // versão deste arquivo ganhadores.html — atualizar a cada mudança
+var FRONT_VERSION = '1.3'; // versão deste arquivo ganhadores.html — atualizar a cada mudança
 var todos = [];
 var filtro = 'todos';
 var timerApres = null;

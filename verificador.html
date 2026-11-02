@@ -15,8 +15,8 @@
 <script src="acesso.js"></script>
 <style>
   :root {
-    --verde-escuro: #0b2545;
-    --verde-medio:  #1a6dbb;
+    --verde-escuro: #4a0f0b;
+    --verde-medio:  #c1340e;
     --verde-claro:  #e6bd34;
     --cinza-fundo:  #F5F5F5;
     --cinza-borda:  #D0D0D0;
@@ -113,7 +113,7 @@
   .header-col { text-align: center; font-size: 11px; font-weight: 700; color: var(--verde-medio); padding: 3px 0; letter-spacing: 1px; }
   .celula { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; border-radius: 4px; background: var(--cinza-fundo); color: var(--texto); transition: background .3s, color .3s; }
   .celula.marcada { background: var(--verde-medio); color: white; }
-  .celula.free { background: #d2e1f3; color: var(--verde-medio); font-size: 9px; font-weight: 400; text-transform: uppercase; }
+  .celula.free { background: #f3d6d2; color: var(--verde-medio); font-size: 9px; font-weight: 400; text-transform: uppercase; }
   .celula.free.marcada { background: var(--verde-escuro); color: var(--verde-claro); }
 
   /* ── Estados ── */
@@ -162,7 +162,7 @@
   <div>
     <h1>🎱 Verificador de Cartelas</h1>
     <div class="sub">Show de Prêmios — Quermesse Paróquia Sagrado Coração de Jesus · Marília-SP</div>
-    <div class="sub" id="verInfo" style="opacity:.5">verificador.html v1.13 · API: verificando…</div>
+    <div class="sub" id="verInfo" style="opacity:.5">verificador.html v1.14 · API: verificando…</div>
   </div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <button class="btn btn-verde" onclick="carregarCartelas()">⬇️ Carregar cartelas</button>
@@ -277,7 +277,7 @@ var termoBusca  = '';
 var itemAtual   = null;  // alerta em exibição (para registrar o ganhador ao confirmar)
 var registrados = 0;
 var LIMITE = 200;   // cartelas por página — ajuste conforme necessário
-var FRONT_VERSION = '1.13'; // versão deste arquivo verificador.html — atualizar a cada mudança
+var FRONT_VERSION = '1.14'; // versão deste arquivo verificador.html — atualizar a cada mudança
 
 /* ── VERSÃO (front-end + API) ── */
 function atualizarVersaoExibida(versaoApi) {
@@ -722,7 +722,7 @@ function liberarAudio() {
 function atualizarSomStatus() {
   var el = document.getElementById('som-status');
   if (!el) return;
-  if (Sirene.pronta()) { el.textContent = '🔊 Som ativado'; el.style.color = '#b6d8f7'; }
+  if (Sirene.pronta()) { el.textContent = '🔊 Som ativado'; el.style.color = '#f7c9bb'; }
   else { el.textContent = '🔇 Clique na página para ativar o som'; el.style.color = '#ffd600'; }
 }
 ['pointerdown', 'keydown', 'touchstart'].forEach(function(ev) {
