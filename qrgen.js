@@ -6,6 +6,12 @@
  *
  *   QRGen.matriz('texto')  -> { tamanho, modulos[linha][coluna] (true = escuro), versao, mascara }
  *   QRGen.svg('texto', { modulo: 4, margem: 4 })  -> string <svg> pronta para inserir na página
+ *   QRGen.svg('texto', { logo: { href: 'imagens/brasao.png', proporcao: 120 / 213 } })  -> com o brasão no centro
+ *   QRGen.svgComLogo(...) devolve também { logo: { aplicado, altura, largura, palavrasPorBloco, limite } }
+ *
+ * O logo cobre módulos do QR: isso é "erro" que a correção (Reed-Solomon) absorve. O gerador calcula quantas
+ * palavras-código o logo atinge em cada bloco e só aceita um tamanho que use, no máximo, METADE da capacidade
+ * de correção de cada bloco (margem para impressão ruim, sombra, desgaste).
  */
 (function (raiz) {
   'use strict';
@@ -151,6 +157,8 @@
       if (m[6][i] === null) m[6][i] = (i % 2 === 0);
     }
 
+    var funcao = [];
+    for (r = 0; r < n; r++) { funcao.push([]); for (c = 0; c < n; c++) funcao[r].push(m[r][c] !== null); }
     var f = bitsFormato(mascara);
     for (i = 0; i < 15; i++) {
       var bit = ((f >> i) & 1) === 1;
@@ -169,6 +177,9 @@
     }
 
     /* dados em zigue-zague, de baixo para cima, de 2 em 2 colunas, da direita para a esquerda */
+    for (r = 0; r < n; r++) for (c = 0; c < n; c++) if (m[r][c] !== null) funcao[r][c] = true; /* inclui formato, versão e módulo escuro */
+    var palavras = [];
+    for (r = 0; r < n; r++) { palavras.push([]); for (c = 0; c < n; c++) palavras[r].push(-1); }
     var inc = -1, lin2 = n - 1, bitIdx = 7, byteIdx = 0, mf = MASCARAS[mascara];
     for (var col2 = n - 1; col2 > 0; col2 -= 2) {
       if (col2 === 6) col2--;
@@ -179,6 +190,7 @@
             if (byteIdx < dadosFinais.length) escuro = ((dadosFinais[byteIdx] >>> bitIdx) & 1) === 1;
             if (mf(lin2, col2 - k)) escuro = !escuro;
             m[lin2][col2 - k] = escuro;
+            palavras[lin2][col2 - k] = byteIdx;
             bitIdx--;
             if (bitIdx === -1) { byteIdx++; bitIdx = 7; }
           }
@@ -187,6 +199,8 @@
         if (lin2 < 0 || n <= lin2) { lin2 -= inc; inc = -inc; break; }
       }
     }
+    Object.defineProperty(m, 'palavras', { value: palavras });
+    Object.defineProperty(m, 'funcao', { value: funcao });
     return m;
   }
 
@@ -220,6 +234,42 @@
     return p;
   }
 
+  /* Para cada posição da sequência intercalada (dados e depois correção), a que bloco pertence. */
+  function blocoDeCadaPalavra(v) {
+    var t = BLOCOS_M[v], tamanhos = [], i, j;
+    for (i = 0; i < t[1]; i++) tamanhos.push(t[2]);
+    for (i = 0; i < t[3]; i++) tamanhos.push(t[4]);
+    var out = [], maior = Math.max(t[2], t[4]);
+    for (i = 0; i < maior; i++) for (j = 0; j < tamanhos.length; j++) if (i < tamanhos[j]) out.push(j);
+    for (i = 0; i < t[0]; i++) for (j = 0; j < tamanhos.length; j++) out.push(j);
+    return { bloco: out, blocos: tamanhos.length, correcao: t[0] };
+  }
+
+  /* Quantas palavras-código de cada bloco um retângulo de módulos (lin, col, alt, larg) destrói.
+   * Devolve null se o retângulo encosta em padrões de função (localizadores, alinhamento, formato...). */
+  function danoDoRetangulo(m, lin, col, alt, larg, v) {
+    var info = blocoDeCadaPalavra(v), vistos = {}, porBloco = [], i, r, c;
+    for (i = 0; i < info.blocos; i++) porBloco.push(0);
+    for (r = lin; r < lin + alt; r++) for (c = col; c < col + larg; c++) {
+      if (r < 0 || c < 0 || r >= m.length || c >= m.length || m.funcao[r][c]) return null;
+      var w = m.palavras[r][c];
+      if (w >= 0 && !vistos[w]) { vistos[w] = 1; porBloco[info.bloco[w]]++; }
+    }
+    return { porBloco: porBloco, maximo: Math.max.apply(null, porBloco), limite: Math.floor(info.correcao / 2) };
+  }
+
+  /* Escolhe o MAIOR selo (brasão + 1 módulo de margem branca) que cabe com folga de correção. */
+  function escolherLogo(q, proporcao) {
+    var n = q.tamanho, melhor = null, alt, larg, lin, col, dano;
+    for (alt = Math.floor(n * 0.36); alt >= 7; alt--) {
+      larg = Math.max(5, Math.round((alt - 2) * proporcao) + 2);
+      lin = Math.floor((n - alt) / 2); col = Math.floor((n - larg) / 2);
+      dano = danoDoRetangulo(q.modulos, lin, col, alt, larg, q.versao);
+      if (dano && dano.maximo <= Math.floor(dano.limite * 0.5)) { melhor = { lin: lin, col: col, alt: alt, larg: larg, dano: dano }; break; }
+    }
+    return melhor;
+  }
+
   /* ── API ── */
   function matriz(texto) {
     var bytes = utf8(texto), v = 0, i;
@@ -233,27 +283,44 @@
     return { tamanho: melhor.length, modulos: melhor, versao: v, mascara: melhorM };
   }
 
-  /* SVG compacto: um retângulo por sequência horizontal de módulos escuros. */
-  function svg(texto, opcoes) {
+  function hrefSeguro(h) { return /^[A-Za-z0-9_.\/-]{1,120}$/.test(h) || /^data:image\/(png|jpeg|svg\+xml);base64,[A-Za-z0-9+\/=]+$/.test(h); }
+
+  /* SVG compacto: um retângulo por sequência horizontal de módulos escuros. Com "logo", reserva o centro. */
+  function svgComLogo(texto, opcoes) {
     opcoes = opcoes || {};
     var q = matriz(texto), mod = opcoes.modulo || 4, margem = opcoes.margem === undefined ? 4 : opcoes.margem;
+    var logo = null, info = { aplicado: false };
+    if (opcoes.logo && opcoes.logo.href) {
+      if (!hrefSeguro(opcoes.logo.href)) throw new Error('Endereço de imagem inválido para o logo.');
+      logo = escolherLogo(q, opcoes.logo.proporcao > 0 ? opcoes.logo.proporcao : 0.56);
+      if (logo) info = { aplicado: true, altura: logo.alt, largura: logo.larg, linha: logo.lin, coluna: logo.col, palavrasPorBloco: logo.dano.porBloco, maximoPorBloco: logo.dano.maximo, limite: logo.dano.limite };
+    }
     var total = q.tamanho + margem * 2, d = '', r, c;
     for (r = 0; r < q.tamanho; r++) {
       c = 0;
       while (c < q.tamanho) {
-        if (q.modulos[r][c]) { var ini = c; while (c < q.tamanho && q.modulos[r][c]) c++; d += 'M' + (ini + margem) + ' ' + (r + margem) + 'h' + (c - ini) + 'v1h-' + (c - ini) + 'z'; }
+        var dentro = logo && r >= logo.lin && r < logo.lin + logo.alt && c >= logo.col && c < logo.col + logo.larg;
+        if (q.modulos[r][c] && !dentro) { var ini = c; while (c < q.tamanho && q.modulos[r][c] && !(logo && r >= logo.lin && r < logo.lin + logo.alt && c >= logo.col && c < logo.col + logo.larg)) c++; d += 'M' + (ini + margem) + ' ' + (r + margem) + 'h' + (c - ini) + 'v1h-' + (c - ini) + 'z'; }
         else c++;
       }
     }
     var lado = total * mod;
-    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + total + ' ' + total + '" width="' + lado + '" height="' + lado + '" shape-rendering="crispEdges" role="img" aria-label="QR Code">'
-      + '<rect width="' + total + '" height="' + total + '" fill="#fff"/><path d="' + d + '" fill="#000"/></svg>';
+    var extra = '';
+    if (logo) {
+      var x = logo.col + margem, y = logo.lin + margem;
+      extra = '<rect x="' + x + '" y="' + y + '" width="' + logo.larg + '" height="' + logo.alt + '" rx="0.8" fill="#fff"/>'
+        + '<image href="' + opcoes.logo.href + '" x="' + (x + 1) + '" y="' + (y + 1) + '" width="' + (logo.larg - 2) + '" height="' + (logo.alt - 2) + '" preserveAspectRatio="xMidYMid meet"/>';
+    }
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + total + ' ' + total + '" width="' + lado + '" height="' + lado + '" shape-rendering="crispEdges" role="img" aria-label="QR Code">'
+      + '<rect width="' + total + '" height="' + total + '" fill="#fff"/><path d="' + d + '" fill="#000"/>' + extra + '</svg>';
+    return { svg: svg, logo: info, versao: q.versao, tamanho: q.tamanho };
   }
+  function svg(texto, opcoes) { return svgComLogo(texto, opcoes).svg; }
 
   var API = {
-    matriz: matriz, svg: svg, capacidadeBytes: capacidadeBytes,
+    matriz: matriz, svg: svg, svgComLogo: svgComLogo, capacidadeBytes: capacidadeBytes,
     /* expostos só para os testes */
-    _teste: { bytesCorrecao: bytesCorrecao, bitsFormato: bitsFormato, bitsVersao: bitsVersao, utf8: utf8, montarDados: montarDados, intercalar: intercalar, BLOCOS_M: BLOCOS_M, ALINHAMENTO: ALINHAMENTO, MASCARAS: MASCARAS, totalDados: totalDados, construir: construir, penalidade: penalidade }
+    _teste: { bytesCorrecao: bytesCorrecao, bitsFormato: bitsFormato, bitsVersao: bitsVersao, utf8: utf8, montarDados: montarDados, intercalar: intercalar, BLOCOS_M: BLOCOS_M, ALINHAMENTO: ALINHAMENTO, MASCARAS: MASCARAS, totalDados: totalDados, construir: construir, penalidade: penalidade, escolherLogo: escolherLogo, danoDoRetangulo: danoDoRetangulo, blocoDeCadaPalavra: blocoDeCadaPalavra }
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   else raiz.QRGen = API;

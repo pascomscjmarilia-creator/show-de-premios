@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Folhas de Série — Show de Prêmios</title>
-<!-- series.html — Versão 1.1 (QR Code de cadastro em cada folha)
+<!-- series.html — Versão 1.2 (QR Code de cadastro em cada folha, com o brasão no centro)
      Gera as folhas de série (4 cartelas por folha A4) a partir da planilha, para imprimir ou salvar em PDF.
      Pede login (CPF e senha pessoal). -->
 <script src="api.js"></script>
@@ -44,7 +44,7 @@
   .h0 { background: #b91c1c; } .h1 { background: #c1340e; } .h2 { background: #9a2a0c; } .h3 { background: #b45309; } .h4 { background: #7e22ce; }
   .folha-rodape { font-size: 8pt; color: #666; text-align: center; margin-top: 2mm; }
   .folha-qr { display: flex; align-items: center; gap: 5mm; border-top: 1.2px dashed #777; margin-top: 2mm; padding-top: 2.5mm; }
-  .folha-qr .qr { flex: none; width: 27mm; height: 27mm; }
+  .folha-qr .qr { flex: none; width: 32mm; height: 32mm; }
   .folha-qr .qr svg { width: 100%; height: 100%; display: block; }
   .folha-qr .txt { font-size: 10pt; line-height: 1.3; color: #222; }
   .folha-qr .txt b { color: #4a0f0b; font-size: 11.5pt; }
@@ -67,6 +67,7 @@
   <h1>📄 Folhas de Série</h1>
   <label>Da série <input type="number" id="de" min="1" value="1"></label>
   <label>até <input type="number" id="ate" min="1" placeholder="todas"></label>
+  <label title="Coloca o brasão da paróquia no centro do QR Code. Se algum celular tiver dificuldade para ler, desmarque e carregue de novo."><input type="checkbox" id="comBrasao" checked style="width:auto" onchange="if (document.querySelector('.folha')) carregar()"> Brasão no QR</label>
   <button onclick="carregar()">Carregar</button>
   <button class="sec" onclick="window.print()">🖨️ Imprimir / Salvar em PDF</button>
   <span id="status"></span>
@@ -121,13 +122,16 @@ function htmlCartela(c, serie) {
     '<div class="tab">' + cab + celulas + '</div></div>';
 }
 
+/* Brasão da paróquia no centro do QR Code (o gerador só aplica se sobrar folga de correção de erros) */
+var LOGO_QR = { href: 'imagens/brasao.png', proporcao: 120 / 213 };
+
 /* Endereço da página pública do comprador (mesma pasta desta tela) */
 function baseComprador() { return new URL('comprador.html', location.href).href; }
 
 function htmlQR(serie, codigo) {
   if (!codigo) return '<div class="folha-qr sem">QR Code indisponível para esta série (código não encontrado).</div>';
   var link = QRLink.linkComprador(baseComprador(), serie, codigo);
-  return '<div class="folha-qr"><div class="qr">' + QRGen.svg(link, { modulo: 4, margem: 4 }) + '</div>' +
+  return '<div class="folha-qr"><div class="qr">' + QRGen.svg(link, { modulo: 4, margem: 4, logo: document.getElementById('comBrasao').checked ? LOGO_QR : null }) + '</div>' +
     '<div class="txt"><b>Cadastre a sua série pelo celular</b><br>Aponte a câmera para o QR Code, confira o número da série e digite só o seu <b>nome</b> e <b>celular</b>.' +
     '<div class="link">Se o QR Code não abrir, digite: ' + esc(link) + '</div></div></div>';
 }
