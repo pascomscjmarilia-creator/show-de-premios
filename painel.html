@@ -112,6 +112,17 @@ a.btn{text-decoration:none}
 .acoes-sorteio{display:flex;gap:10px;align-items:stretch}
 .acoes-sorteio .btn{padding:14px 22px;font-size:14px;border-radius:12px;justify-content:center}
 .acoes-sorteio .btn-sortear{flex:1;font-size:22px;padding:16px}
+/* globo físico: número + correções ficam na coluna da direita, sob a configuração do jogo */
+.card.compacto{padding:10px 14px 12px}
+.card.compacto .card-title{margin-bottom:2px}
+.card.compacto .big-num-wrap{padding:2px 0}
+.card.compacto .big-num-letter{font-size:24px}
+.card.compacto .big-num-value{font-size:clamp(70px,12.5vh,110px)}
+.col-lateral.compacta .cfg-desc{display:none}
+.col-lateral.compacta .cfg-linha{padding:7px 0;gap:5px}
+.col-lateral.compacta .seg .btn{padding:5px 10px}
+.col-lateral.compacta .stat-box{padding:5px}
+.col-lateral.compacta .stats-inline .stat-num{font-size:20px}
 
 /* ══ NÚMERO GRANDE ══ */
 .big-num-wrap{text-align:center;padding:10px 0}
@@ -334,6 +345,15 @@ a.btn{text-decoration:none}
               <div style="text-align:center;margin-top:4px">
                 <span class="fase-badge" id="faseBadge"><i class="ti ti-flag"></i> Fase 1</span>
               </div>
+              <!-- só aparece no globo físico: o cartão do número fica na coluna da direita, com as correções logo abaixo -->
+              <div class="acoes-sorteio" id="acoesManual" style="display:none;margin-top:12px">
+                <button class="btn btn-warning" onclick="desfazer()" style="flex:1">
+                  <i class="ti ti-arrow-back-up"></i> Desfazer
+                </button>
+                <button class="btn btn-danger" onclick="confirmarReset()" style="flex:1">
+                  <i class="ti ti-refresh-alert"></i> Resetar
+                </button>
+              </div>
             </div>
 
             <div class="card" id="cardControles">
@@ -369,14 +389,6 @@ a.btn{text-decoration:none}
                   </button>
                 </div>
                 <div id="numPad" style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:12px"></div>
-                <div class="acoes-sorteio" style="margin-top:10px">
-                  <button class="btn btn-warning" onclick="desfazer()" style="flex:1">
-                    <i class="ti ti-arrow-back-up"></i> Desfazer
-                  </button>
-                  <button class="btn btn-danger" onclick="confirmarReset()" style="flex:1">
-                    <i class="ti ti-refresh-alert"></i> Resetar
-                  </button>
-                </div>
                 <div class="feedback" id="fbManual" style="margin-top:6px"></div>
               </div>
             </div>
@@ -564,7 +576,7 @@ a.btn{text-decoration:none}
             <button class="btn btn-ghost" onclick="testarScript()"><i class="ti ti-plug"></i> Testar</button>
           </div>
           <div class="feedback" id="fbScript"></div>
-          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.20 · API: verificando…</div>
+          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.21 · API: verificando…</div>
         </div>
       </div>
 
@@ -1191,13 +1203,17 @@ function setModo(m) {
   document.getElementById('btnModoManual').className = 'btn ' + (m==='manual' ? 'btn-blue' : 'btn-ghost') + ' ';
   document.getElementById('modoAutoWrap').style.display   = m==='auto'   ? '' : 'none';
   document.getElementById('modoManualWrap').style.display = m==='manual' ? '' : 'none';
-  /* No globo físico o campo de número fica logo abaixo do seletor de modo,
-     acima do número sorteado; no automático a ordem original é restaurada. */
+  /* Globo físico: o campo e a grade de números ficam à esquerda; o cartão do número sorteado, com
+     Desfazer/Resetar, vai para a direita, logo abaixo da configuração do jogo. No automático, volta ao lugar. */
   const cNum = document.getElementById('cardNumero');
   const cCtl = document.getElementById('cardControles');
-  const col = cNum.parentNode;
-  if (m==='manual') col.insertBefore(cCtl, cNum);   /* campo do globo no alto */
-  else col.insertBefore(cNum, cCtl);                /* número em cima, botões embaixo */
+  const cJogo = document.getElementById('cardJogo');
+  const colPrincipal = cCtl.parentNode, colLateral = cJogo.parentNode;
+  if (m==='manual') colLateral.insertBefore(cNum, cJogo.nextSibling);
+  else colPrincipal.insertBefore(cNum, cCtl);
+  cNum.classList.toggle('compacto', m==='manual');
+  colLateral.classList.toggle('compacta', m==='manual');
+  document.getElementById('acoesManual').style.display = m==='manual' ? '' : 'none';
   if (m==='manual') {
     buildNumPad();
     const inp = document.getElementById('inputManual');
@@ -1759,7 +1775,7 @@ async function testarPlanilha(){
    INIT AUTH
 ══════════════════════════════════════════════════════════ */
 /* Versão do arquivo e do Apps Script (a ação desconhecida responde só { versao }) */
-const FRONT_VERSION = '1.20'; /* versão deste painel.html — atualizar a cada mudança */
+const FRONT_VERSION = '1.21'; /* versão deste painel.html — atualizar a cada mudança */
 (function(){
   _scJsonp(SCRIPT_PATROC + '?acao=_ping', function(err, data){
     const el = document.getElementById('verInfo');
