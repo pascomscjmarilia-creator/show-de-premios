@@ -115,8 +115,8 @@ a.btn{text-decoration:none}
 
 /* ══ NÚMERO GRANDE ══ */
 .big-num-wrap{text-align:center;padding:10px 0}
-.big-num-letter{font-size:28px;font-weight:700;color:#555;letter-spacing:.1em}
-.big-num-value{font-size:clamp(84px,17vh,150px);font-weight:900;line-height:1;color:#2d1a17;transition:color .3s;font-variant-numeric:tabular-nums}
+.big-num-letter{font-size:34px;font-weight:700;color:#555;letter-spacing:.1em}
+.big-num-value{font-size:clamp(101px,20.4vh,180px);font-weight:900;line-height:1;color:#2d1a17;transition:color .3s;font-variant-numeric:tabular-nums}
 .big-num-value.live{color:#fff}
 .big-num-value.pop{animation:bpop .3s ease-out}
 @keyframes bpop{0%{transform:scale(1)}45%{transform:scale(1.1)}100%{transform:scale(1)}}
@@ -564,7 +564,7 @@ a.btn{text-decoration:none}
             <button class="btn btn-ghost" onclick="testarScript()"><i class="ti ti-plug"></i> Testar</button>
           </div>
           <div class="feedback" id="fbScript"></div>
-          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.19 · API: verificando…</div>
+          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.20 · API: verificando…</div>
         </div>
       </div>
 
@@ -1759,7 +1759,7 @@ async function testarPlanilha(){
    INIT AUTH
 ══════════════════════════════════════════════════════════ */
 /* Versão do arquivo e do Apps Script (a ação desconhecida responde só { versao }) */
-const FRONT_VERSION = '1.19'; /* versão deste painel.html — atualizar a cada mudança */
+const FRONT_VERSION = '1.20'; /* versão deste painel.html — atualizar a cada mudança */
 (function(){
   _scJsonp(SCRIPT_PATROC + '?acao=_ping', function(err, data){
     const el = document.getElementById('verInfo');
