@@ -320,7 +320,7 @@ a.btn{text-decoration:none}
       </a>
 
       <!-- Mini-board sidebar -->
-      <div style="padding:12px;margin-top:auto">
+      <div id="blocoMiniBoard" style="padding:12px;margin-top:auto">
         <div style="font-size:10px;color:#5a342e;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Pedras sorteadas</div>
         <div class="board-grid" id="miniBoard"></div>
       </div>
@@ -576,7 +576,7 @@ a.btn{text-decoration:none}
             <button class="btn btn-ghost" onclick="testarScript()"><i class="ti ti-plug"></i> Testar</button>
           </div>
           <div class="feedback" id="fbScript"></div>
-          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.21 · API: verificando…</div>
+          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.22 · API: verificando…</div>
         </div>
       </div>
 
@@ -1214,6 +1214,8 @@ function setModo(m) {
   cNum.classList.toggle('compacto', m==='manual');
   colLateral.classList.toggle('compacta', m==='manual');
   document.getElementById('acoesManual').style.display = m==='manual' ? '' : 'none';
+  /* no globo físico a grade de 1 a 75 já mostra os sorteados em destaque: o quadro lateral seria repetido */
+  document.getElementById('blocoMiniBoard').style.display = m==='manual' ? 'none' : '';
   if (m==='manual') {
     buildNumPad();
     const inp = document.getElementById('inputManual');
@@ -1775,7 +1777,7 @@ async function testarPlanilha(){
    INIT AUTH
 ══════════════════════════════════════════════════════════ */
 /* Versão do arquivo e do Apps Script (a ação desconhecida responde só { versao }) */
-const FRONT_VERSION = '1.21'; /* versão deste painel.html — atualizar a cada mudança */
+const FRONT_VERSION = '1.22'; /* versão deste painel.html — atualizar a cada mudança */
 (function(){
   _scJsonp(SCRIPT_PATROC + '?acao=_ping', function(err, data){
     const el = document.getElementById('verInfo');
