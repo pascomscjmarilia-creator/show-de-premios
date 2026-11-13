@@ -142,6 +142,10 @@
   .rodada-btn { border: 2px solid #c9a227; background: #fff; color: #7a5b00; font-weight: 800; border-radius: 8px; padding: 5px 14px; cursor: pointer; font-size: 14px; }
   .rodada-btn.ativo { background: #c9a227; color: #fff; }
   .rodada-info { font-size: 12px; color: #7a5b00; }
+  .fase-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 800; background: #fff3c4; color: #5a4000; border: 1px solid #f0d78a; white-space: nowrap; }
+  .fase-chip.f2 { background: #c1340e; color: #fff; border-color: #c1340e; }
+  .modalidade-bar.fase2 .opcoes { opacity: .4; pointer-events: none; }
+  .fase-info { font-size: 12px; color: var(--texto-mudo); }
   .busca-bar { padding: 8px 20px; background: #fff; border-bottom: 1px solid var(--cinza-borda); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .busca-bar input { flex: 1; min-width: 220px; max-width: 420px; padding: 7px 10px; border: 1px solid var(--cinza-borda); border-radius: 8px; font-size: 14px; }
   .badge-fora { background: #9aa39a; color: #fff; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 8px; }
@@ -163,7 +167,7 @@
   <div>
     <h1>🎱 Verificador de Cartelas</h1>
     <div class="sub">Show de Prêmios — Quermesse Paróquia Sagrado Coração de Jesus · Marília-SP</div>
-    <div class="sub" id="verInfo" style="opacity:.5">verificador.html v1.14 · API: verificando…</div>
+    <div class="sub" id="verInfo" style="opacity:.5">verificador.html v1.15 · API: verificando…</div>
   </div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <button class="btn btn-verde" onclick="carregarCartelas()">⬇️ Carregar cartelas</button>
@@ -206,13 +210,15 @@
 </div>
 
 <div class="modalidade-bar">
-  <label>Prêmios desta rodada:</label>
+  <label>Fase do jogo:</label>
+  <span class="fase-chip" id="fase-chip">🏆 Fase 1 — Quina</span>
+  <label>Prêmios nesta fase:</label>
   <div class="opcoes">
     <label class="check-item"><input type="checkbox" id="mod-linha" checked onchange="reavaliarModalidades()"> Quina (linha / coluna)</label>
     <label class="check-item"><input type="checkbox" id="mod-diagonal" onchange="reavaliarModalidades()"> Diagonal</label>
     <label class="check-item"><input type="checkbox" id="mod-cantos" checked onchange="reavaliarModalidades()"> Quatro cantos</label>
   </div>
-  <span style="font-size:12px;color:var(--texto-mudo);margin-left:8px">+ Cartela cheia (sempre ativa)</span>
+  <span class="fase-info" id="fase-info" style="margin-left:8px">+ Cartela cheia (sempre ativa) · a fase é definida pelo Painel</span>
   <span style="margin-left:auto;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
     <label class="check-item"><input type="checkbox" id="sirene-local" checked onchange="salvarOpcoesSirene()"> 🔊 Sirene neste aparelho</label>
     <label class="check-item"><input type="checkbox" id="sirene-telao" checked onchange="salvarOpcoesSirene()"> 📡 Sirene no telão / som principal</label>
@@ -273,12 +279,13 @@
    CONFIG
 ══════════════════════════════════════════════════════ */
 var API    = 'https://script.google.com/macros/s/AKfycbxi282C_QHoo5Xm7bqinACTWwzNh9x32aWikssVJ7REoIH1lnOSucgPHslkhHvf8PSP/exec';
+var faseAtual = 1;       // 1 = Quina (e cartela cheia) · 2 = só Cartela Cheia — quem manda é o Painel
 var rodadaAtual = 1;     // 1 a 4 = posição da cartela que concorre; 0 = todas
 var termoBusca  = '';
 var itemAtual   = null;  // alerta em exibição (para registrar o ganhador ao confirmar)
 var registrados = 0;
 var LIMITE = 200;   // cartelas por página — ajuste conforme necessário
-var FRONT_VERSION = '1.14'; // versão deste arquivo verificador.html — atualizar a cada mudança
+var FRONT_VERSION = '1.15'; // versão deste arquivo verificador.html — atualizar a cada mudança
 
 /* ── VERSÃO (front-end + API) ── */
 function atualizarVersaoExibida(versaoApi) {
@@ -462,6 +469,23 @@ function aplicarRodada(n, origem) {
   }
 }
 
+/* A fase vem do Painel (o operador é quem comanda). Aqui só se acompanha e se mostra. */
+function aplicarFase(f, origem) {
+  if (f !== 1 && f !== 2) return;
+  var mudou = f !== faseAtual;
+  faseAtual = f;
+  var chip = document.getElementById('fase-chip');
+  if (chip) {
+    chip.textContent = f === 1 ? '🏆 Fase 1 — Quina' : '👑 Fase 2 — Cartela Cheia';
+    chip.classList.toggle('f2', f === 2);
+  }
+  var barra = document.querySelector('.modalidade-bar'); if (barra) barra.classList.toggle('fase2', f === 2);
+  var info = document.getElementById('fase-info');
+  if (info) info.textContent = (f === 1 ? '+ Cartela cheia (sempre ativa)' : 'Só a Cartela Cheia gera alerta; a quina não alerta mais') +
+    (origem === 'painel' ? ' · definida pelo Painel' : ' · a fase é definida pelo Painel');
+  if (mudou) { verificarCartelas(); atualizarContadores(); } /* voltando à fase 1, quinas pendentes alertam */
+}
+
 function escolherRodada(n) {
   aplicarRodada(n, 'manual');
   /* Se o Painel estiver em outra rodada, a próxima pedra sorteada traz a rodada do Painel */
@@ -607,7 +631,7 @@ function verificarCartelas() {
     if (temCheia && !cartela.cheiaJaAlertada) {
       cartela.cheiaJaAlertada = true; cartela.quinaJaAlertada = true;
       agendarAlerta(cartela, 'cheia');
-    } else if (temQuina && !cartela.quinaJaAlertada) {
+    } else if (temQuina && !cartela.quinaJaAlertada && Logica.alertaPermitido(faseAtual, 'quina')) {
       cartela.quinaJaAlertada = true;
       agendarAlerta(cartela, 'quina', padrao);
     }
@@ -814,6 +838,8 @@ function limparTudo() {
    Firebase (qualquer aparelho na internet/wifi). */
 function processarMensagemVerificador(d) {
   if (!d) return;
+  var fp = Logica.faseDaMensagem(d);
+  if (fp) aplicarFase(fp, 'painel');
   if (d.payload && d.payload.rodada !== undefined && (d.tipo === 'draw' || d.tipo === 'undo' || d.tipo === 'resetar')) {
     var rp = parseInt(d.payload.rodada, 10);
     if (rp >= 1 && rp <= 4) aplicarRodada(rp, 'painel');

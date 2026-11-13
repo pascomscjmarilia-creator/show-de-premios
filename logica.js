@@ -36,7 +36,21 @@
     return { marcadas: marcadas, temQuina: temQuina, temCheia: temCheia, padrao: padrao };
   }
 
-  var API = { avaliarCartela: avaliarCartela };
+  /* Fase do jogo definida pelo Painel: 1 = Quina (e cartela cheia), 2 = só Cartela Cheia.
+     Devolve a fase que a mensagem traz (1 ou 2) ou null se a mensagem não fala de fase. */
+  var TIPOS_COM_FASE = ['draw', 'undo', 'resetar', 'mudar_fase'];
+  function faseDaMensagem(d) {
+    if (!d || !d.payload || TIPOS_COM_FASE.indexOf(d.tipo) < 0) return null;
+    var f = parseInt(d.payload.fase, 10);
+    return (f === 1 || f === 2) ? f : null;
+  }
+
+  /* Que alerta vale em cada fase? Cartela cheia sempre; quina só na fase 1. */
+  function alertaPermitido(fase, tipo) {
+    return tipo === 'cheia' || Number(fase) === 1;
+  }
+
+  var API = { avaliarCartela: avaliarCartela, faseDaMensagem: faseDaMensagem, alertaPermitido: alertaPermitido };
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   else raiz.Logica = API;
 })(typeof window !== 'undefined' ? window : this);
