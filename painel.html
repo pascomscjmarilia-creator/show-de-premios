@@ -112,17 +112,29 @@ a.btn{text-decoration:none}
 .acoes-sorteio{display:flex;gap:10px;align-items:stretch}
 .acoes-sorteio .btn{padding:14px 22px;font-size:14px;border-radius:12px;justify-content:center}
 .acoes-sorteio .btn-sortear{flex:1;font-size:22px;padding:16px}
-/* globo físico: número + correções ficam na coluna da direita, sob a configuração do jogo */
+/* cartão do número (sempre na coluna da direita, sob a configuração) */
 .card.compacto{padding:10px 14px 12px}
 .card.compacto .card-title{margin-bottom:2px}
 .card.compacto .big-num-wrap{padding:2px 0}
 .card.compacto .big-num-letter{font-size:24px}
-.card.compacto .big-num-value{font-size:clamp(70px,12.5vh,110px)}
-.col-lateral.compacta .cfg-desc{display:none}
-.col-lateral.compacta .cfg-linha{padding:7px 0;gap:5px}
-.col-lateral.compacta .seg .btn{padding:5px 10px}
-.col-lateral.compacta .stat-box{padding:5px}
-.col-lateral.compacta .stats-inline .stat-num{font-size:20px}
+.card.compacto .big-num-value{font-size:clamp(84px,15vh,132px)}
+.titulo-stats{margin-left:auto;font-size:11px;letter-spacing:0;text-transform:none;color:#8a6a62;font-weight:600}
+.titulo-stats b{color:#f4a58f;font-size:13px}
+.card.compacto .hist-chips{flex-wrap:nowrap;overflow:hidden;margin-top:8px;min-height:22px}
+.card.compacto .hist-chips .chip{flex-shrink:0}
+.painel-grid .cfg-desc{display:none}
+.painel-grid .cfg-linha{padding:8px 0;gap:6px}
+.painel-grid .seg .btn{padding:6px 10px}
+
+/* quadro de números 1–75 em colunas B-I-N-G-O: a altura das casas acompanha a altura da tela, para caber sem rolar */
+.tabuleiro{--cel:clamp(20px,calc((100vh - 360px) / 16),46px);display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
+.tab-hdr{height:var(--cel);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:clamp(12px,2vh,16px);border-radius:5px;background:#160d0c;letter-spacing:.08em}
+.tab-cel{height:var(--cel);border:1px solid #2d1a17;border-radius:5px;background:#160d0c;color:#8a6a62;font-size:clamp(11px,2vh,16px);font-weight:700;font-variant-numeric:tabular-nums;padding:0;cursor:default;pointer-events:none;transition:background .12s,color .12s,transform .08s}
+.tabuleiro.clicavel .tab-cel{pointer-events:auto;cursor:pointer}
+.tabuleiro.clicavel .tab-cel:hover:not(.hit){background:#2d1a17;color:#fff;border-color:#5a342e}
+.tabuleiro.clicavel .tab-cel:active:not(.hit){transform:scale(.94)}
+.tab-cel.hit{color:#fff;border-color:transparent;pointer-events:none}
+.tab-dica{margin-left:auto;font-size:11px;letter-spacing:0;text-transform:none;color:#7d5a52;font-weight:500}
 
 /* ══ NÚMERO GRANDE ══ */
 .big-num-wrap{text-align:center;padding:10px 0}
@@ -320,7 +332,7 @@ a.btn{text-decoration:none}
       </a>
 
       <!-- Mini-board sidebar -->
-      <div id="blocoMiniBoard" style="padding:12px;margin-top:auto">
+      <div id="blocoMiniBoard" style="display:none;padding:12px;margin-top:auto">
         <div style="font-size:10px;color:#5a342e;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Pedras sorteadas</div>
         <div class="board-grid" id="miniBoard"></div>
       </div>
@@ -333,28 +345,8 @@ a.btn{text-decoration:none}
       <div class="panel active" id="panel-bingo">
 
         <div class="painel-grid">
-          <!-- Coluna principal: número, botões de sorteio, histórico -->
+          <!-- Coluna principal: controles de sorteio e quadro de números (iguais nos dois modos) -->
           <div class="col-principal">
-
-            <div class="card" id="cardNumero">
-              <div class="card-title"><i class="ti ti-circle-dot"></i> Número Sorteado</div>
-              <div class="big-num-wrap">
-                <div class="big-num-letter" id="bigLetter">—</div>
-                <div class="big-num-value" id="bigValue">—</div>
-              </div>
-              <div style="text-align:center;margin-top:4px">
-                <span class="fase-badge" id="faseBadge"><i class="ti ti-flag"></i> Fase 1</span>
-              </div>
-              <!-- só aparece no globo físico: o cartão do número fica na coluna da direita, com as correções logo abaixo -->
-              <div class="acoes-sorteio" id="acoesManual" style="display:none;margin-top:12px">
-                <button class="btn btn-warning" onclick="desfazer()" style="flex:1">
-                  <i class="ti ti-arrow-back-up"></i> Desfazer
-                </button>
-                <button class="btn btn-danger" onclick="confirmarReset()" style="flex:1">
-                  <i class="ti ti-refresh-alert"></i> Resetar
-                </button>
-              </div>
-            </div>
 
             <div class="card" id="cardControles">
               <div class="card-title"><i class="ti ti-player-play"></i> Controles</div>
@@ -365,42 +357,35 @@ a.btn{text-decoration:none}
                   <button class="btn btn-sortear" onclick="sortearPedra()" id="btnSortear">
                     <i class="ti ti-refresh"></i> SORTEAR
                   </button>
-                  <button class="btn btn-warning" onclick="desfazer()">
-                    <i class="ti ti-arrow-back-up"></i> Desfazer
-                  </button>
-                  <button class="btn btn-danger" onclick="confirmarReset()">
-                    <i class="ti ti-refresh-alert"></i> Resetar
-                  </button>
                 </div>
               </div>
 
               <!-- Modo manual (globo físico) -->
               <div id="modoManualWrap" style="display:none">
-                <div style="margin-bottom:10px;font-size:15px;font-weight:700;color:#fbbf24;text-align:center;letter-spacing:.04em">
+                <div style="margin-bottom:6px;font-size:12px;font-weight:700;color:#fbbf24;text-align:center;letter-spacing:.06em">
                   <i class="ti ti-ball-bowling"></i>&nbsp; NÚMERO RETIRADO DO GLOBO
                 </div>
-                <div style="display:flex;gap:10px;align-items:stretch;padding:14px;border:2px solid #fbbf24;border-radius:14px;background:#1a1608;box-shadow:0 0 22px rgba(251,191,36,.25)">
+                <div style="display:flex;gap:10px;align-items:stretch;padding:8px 10px;border:2px solid #fbbf24;border-radius:12px;background:#1a1608;box-shadow:0 0 16px rgba(251,191,36,.2)">
                   <input type="number" id="inputManual" min="1" max="75" inputmode="numeric"
                     placeholder="1–75"
-                    style="background:#100706;border:2px solid #fbbf24;border-radius:10px;padding:8px 10px;color:#fbbf24;font-size:76px;line-height:1.1;font-weight:900;flex:1;min-width:0;text-align:center;outline:none;font-variant-numeric:tabular-nums"
+                    style="background:#100706;border:2px solid #fbbf24;border-radius:9px;padding:2px 8px;color:#fbbf24;font-size:44px;line-height:1.15;font-weight:900;flex:1;min-width:0;text-align:center;outline:none;font-variant-numeric:tabular-nums"
                     onkeydown="if(event.key==='Enter') confirmarManual()">
-                  <button class="btn btn-primary" onclick="confirmarManual()" style="font-size:24px;font-weight:900;padding:12px 26px;border-radius:10px;flex-direction:column;gap:4px;justify-content:center">
-                    <i class="ti ti-check" style="font-size:34px"></i> CONFIRMAR
+                  <button class="btn btn-primary" onclick="confirmarManual()" style="font-size:18px;font-weight:900;padding:6px 22px;border-radius:9px;gap:8px;justify-content:center">
+                    <i class="ti ti-check" style="font-size:24px"></i> CONFIRMAR
                   </button>
                 </div>
-                <div id="numPad" style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:12px"></div>
                 <div class="feedback" id="fbManual" style="margin-top:6px"></div>
               </div>
             </div>
 
-            <!-- Histórico -->
-            <div class="card" id="histCard" style="display:none">
-              <div class="card-title"><i class="ti ti-history"></i> Últimas pedras</div>
-              <div class="hist-chips" id="histChips"></div>
+            <!-- Quadro de números 1–75 -->
+            <div class="card" id="cardTabuleiro">
+              <div class="card-title"><i class="ti ti-grid-dots"></i> Quadro de números <span class="tab-dica" id="tabDica">Os sorteados ficam em destaque</span></div>
+              <div class="tabuleiro" id="tabuleiro"></div>
             </div>
           </div>
 
-          <!-- Coluna lateral: configuração do jogo e andamento -->
+          <!-- Coluna lateral: configuração do jogo e número sorteado com as correções -->
           <div class="col-lateral">
             <div class="card" id="cardJogo">
               <div class="card-title"><i class="ti ti-adjustments"></i> Configuração do jogo</div>
@@ -432,13 +417,28 @@ a.btn{text-decoration:none}
                 </div>
                 <div class="cfg-desc" id="faseDesc">Fase 1: Quina, Diagonal ou Quatro Cantos</div>
               </div>
+            </div>
 
-              <div class="cfg-linha">
-                <div class="cfg-rotulo"><i class="ti ti-chart-bar"></i> Andamento</div>
-                <div class="stats-inline">
-                  <div class="stat-box"><div class="stat-num" id="statSorteados">0</div><div class="stat-label">Sorteados</div></div>
-                  <div class="stat-box"><div class="stat-num" id="statRestam" style="color:#e0887a">75</div><div class="stat-label">Restam</div></div>
-                </div>
+            <div class="card compacto" id="cardNumero">
+              <div class="card-title"><i class="ti ti-circle-dot"></i> Número sorteado
+                <span class="titulo-stats"><b id="statSorteados">0</b> sorteados · <b id="statRestam">75</b> restam</span>
+              </div>
+              <div class="big-num-wrap">
+                <div class="big-num-letter" id="bigLetter">—</div>
+                <div class="big-num-value" id="bigValue">—</div>
+              </div>
+              <div style="text-align:center;margin-top:2px">
+                <span class="fase-badge" id="faseBadge"><i class="ti ti-flag"></i> Fase 1</span>
+              </div>
+              <!-- últimas pedras (uma linha) -->
+              <div id="histCard" style="display:none"><div class="hist-chips" id="histChips"></div></div>
+              <div class="acoes-sorteio" id="acoesManual" style="margin-top:10px">
+                <button class="btn btn-warning" onclick="desfazer()" style="flex:1">
+                  <i class="ti ti-arrow-back-up"></i> Desfazer
+                </button>
+                <button class="btn btn-danger" onclick="confirmarReset()" style="flex:1">
+                  <i class="ti ti-refresh-alert"></i> Resetar
+                </button>
               </div>
             </div>
           </div>
@@ -576,7 +576,7 @@ a.btn{text-decoration:none}
             <button class="btn btn-ghost" onclick="testarScript()"><i class="ti ti-plug"></i> Testar</button>
           </div>
           <div class="feedback" id="fbScript"></div>
-          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.22 · API: verificando…</div>
+          <div style="margin-top:8px;font-size:11px;color:#555" id="verInfo">painel.html v1.23 · API: verificando…</div>
         </div>
       </div>
 
@@ -1131,6 +1131,7 @@ function initGame(){
   marcarTelaAtiva(ls('bingo_tela_ativa'));
   restaurarRodada();
   buildMiniBoard();
+  buildTabuleiro();
   restaurarJogo();
   if(!called.size) renderBig(null);
   updateStats();
@@ -1153,6 +1154,8 @@ function initGame(){
    NAVEGAÇÃO
 ══════════════════════════════════════════════════════════ */
 function showPanel(id){
+  /* o quadro de números já está na tela de Sorteio de Pedras: a miniatura lateral só aparece nas outras telas */
+  const mini=document.getElementById('blocoMiniBoard'); if(mini) mini.style.display = id==='bingo' ? 'none' : '';
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('panel-'+id).classList.add('active');
@@ -1176,6 +1179,7 @@ function buildMiniBoard(){
 }
 
 function paintMiniBoard(){
+  paintTabuleiro();
   document.querySelectorAll('.board-cell').forEach(el=>{ el.classList.remove('hit'); el.style.background=''; });
   called.forEach(n=>{ const col=colOf(n); const cell=document.getElementById('mc'+n); if(cell){ cell.classList.add('hit'); cell.style.background=col.hex; } });
 }
@@ -1203,62 +1207,31 @@ function setModo(m) {
   document.getElementById('btnModoManual').className = 'btn ' + (m==='manual' ? 'btn-blue' : 'btn-ghost') + ' ';
   document.getElementById('modoAutoWrap').style.display   = m==='auto'   ? '' : 'none';
   document.getElementById('modoManualWrap').style.display = m==='manual' ? '' : 'none';
-  /* Globo físico: o campo e a grade de números ficam à esquerda; o cartão do número sorteado, com
-     Desfazer/Resetar, vai para a direita, logo abaixo da configuração do jogo. No automático, volta ao lugar. */
-  const cNum = document.getElementById('cardNumero');
-  const cCtl = document.getElementById('cardControles');
-  const cJogo = document.getElementById('cardJogo');
-  const colPrincipal = cCtl.parentNode, colLateral = cJogo.parentNode;
-  if (m==='manual') colLateral.insertBefore(cNum, cJogo.nextSibling);
-  else colPrincipal.insertBefore(cNum, cCtl);
-  cNum.classList.toggle('compacto', m==='manual');
-  colLateral.classList.toggle('compacta', m==='manual');
-  document.getElementById('acoesManual').style.display = m==='manual' ? '' : 'none';
-  /* no globo físico a grade de 1 a 75 já mostra os sorteados em destaque: o quadro lateral seria repetido */
-  document.getElementById('blocoMiniBoard').style.display = m==='manual' ? 'none' : '';
+  /* O layout é o mesmo nos dois modos. No globo físico, tocar num número do quadro o digita no campo. */
+  document.getElementById('tabuleiro').classList.toggle('clicavel', m==='manual');
+  document.getElementById('tabDica').textContent = m==='manual' ? 'Toque num número para digitá-lo' : 'Os sorteados ficam em destaque';
   if (m==='manual') {
-    buildNumPad();
     const inp = document.getElementById('inputManual');
     inp.focus(); inp.select();
   }
 }
-
-function buildNumPad() {
-  const pad = document.getElementById('numPad');
-  if (pad.childElementCount > 0) return; // já construído
-  for (let n = 1; n <= 75; n++) {
-    const col = colOf(n);
-    const btn = document.createElement('button');
-    btn.id = 'np' + n;
-    btn.textContent = n;
-    btn.style.cssText = 'background:#160d0c;border:1px solid #2d1a17;border-radius:4px;color:#555;font-size:15px;font-weight:700;padding:9px 2px;cursor:pointer;font-variant-numeric:tabular-nums;transition:background .15s,color .15s';
-    btn.onclick = () => {
-      document.getElementById('inputManual').value = n;
-      document.getElementById('inputManual').focus();
-    };
-    pad.appendChild(btn);
+/* Quadro de números 1–75 (colunas B-I-N-G-O) */
+function buildTabuleiro(){
+  const b=document.getElementById('tabuleiro'); b.innerHTML='';
+  COLS.forEach(c=>{ const h=document.createElement('div'); h.className='tab-hdr'; h.style.color=c.hdr; h.textContent=c.l; b.appendChild(h); });
+  for(let row=0;row<15;row++){
+    COLS.forEach(c=>{
+      const n=c.s+row, el=document.createElement('button');
+      el.type='button'; el.className='tab-cel'; el.id='tb'+n; el.textContent=n;
+      el.onclick=()=>{ if(modo!=='manual' || called.has(n)) return; const i=document.getElementById('inputManual'); i.value=n; i.focus(); };
+      b.appendChild(el);
+    });
   }
 }
-
-function paintNumPad() {
-  for (let n = 1; n <= 75; n++) {
-    const btn = document.getElementById('np' + n);
-    if (!btn) continue;
-    const col = colOf(n);
-    if (called.has(n)) {
-      btn.style.background = col.hex;
-      btn.style.color = '#fff';
-      btn.style.opacity = '0.5';
-      btn.disabled = true;
-    } else {
-      btn.style.background = '#160d0c';
-      btn.style.color = '#888';
-      btn.style.opacity = '1';
-      btn.disabled = false;
-    }
-  }
+function paintTabuleiro(){
+  document.querySelectorAll('.tab-cel').forEach(el=>{ el.classList.remove('hit'); el.style.background=''; });
+  called.forEach(n=>{ const el=document.getElementById('tb'+n); if(el){ el.classList.add('hit'); el.style.background=colOf(n).hex; } });
 }
-
 function confirmarManual() {
   const inp = document.getElementById('inputManual');
   const n = parseInt(inp.value);
@@ -1290,7 +1263,6 @@ function sortearPedra(){
 function registrarNumero(n){
   called.add(n); hist.unshift(n);
   renderBig(n); paintMiniBoard(); updateStats(); updateHist();
-  if(modo==='manual') paintNumPad();
   const sponsor=sponsors.find(s=>String(s.num)===String(n))||null;
   broadcastDraw(n, sponsor);
 }
@@ -1777,7 +1749,7 @@ async function testarPlanilha(){
    INIT AUTH
 ══════════════════════════════════════════════════════════ */
 /* Versão do arquivo e do Apps Script (a ação desconhecida responde só { versao }) */
-const FRONT_VERSION = '1.22'; /* versão deste painel.html — atualizar a cada mudança */
+const FRONT_VERSION = '1.23'; /* versão deste painel.html — atualizar a cada mudança */
 (function(){
   _scJsonp(SCRIPT_PATROC + '?acao=_ping', function(err, data){
     const el = document.getElementById('verInfo');
